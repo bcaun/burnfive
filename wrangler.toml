@@ -1,0 +1,10 @@
+name = "burnfive"
+main = "src/worker.js"
+compatibility_date = "2025-11-01"
+
+[[routes]]
+pattern = "burnfive.daagamma.com"
+custom_domain = true
+
+[[kv_namespaces]]
+binding = "GAMES"

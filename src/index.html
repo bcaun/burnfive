@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Burn Five</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: sober puzzle table, nothing shouts but the cubes
+   IDEA: a printed board game sheet: ruled grid, white paper, painted wooden cubes
+   PICTURE: the 10x10 board itself, large, with lit cubes (base, shadow plane, light edge)
+   COLOUR and TYPE: white ground, black ink, four cube colours as the only colour; Archivo wide for numerals
+   LAYOUT: board left and dominant, a narrow side column with score, next, tempo, rules; stacks under 760px */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#0f0f10);--ink:light-dark(#111,#ececec);--mute:light-dark(#6b6b6b,#9a9a9a);--rule:light-dark(#e6e6e6,#26262a);--cell:light-dark(#fff,#151517);--hi:light-dark(#111,#f2f2f2);
+--r:#e0262f;--y:#f2b705;--g:#1d9a50;--b:#2160d8;--x:light-dark(#1c1c1e,#e8e8e8);--xi:light-dark(#fff,#111)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Archivo,system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:1100px;margin:0 auto;padding:clamp(20px,3vw,40px) max(4vw,14px)}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:32px;line-height:1.05;margin:0;font-weight:800;font-stretch:112%}
+.game{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:clamp(20px,3vw,44px);align-items:start}
+.boardbox{position:relative;width:100%;max-width:620px;aspect-ratio:1}
+#board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(10,minmax(0,1fr));border-top:2px solid var(--hi);border-left:1px solid var(--rule);touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.c{appearance:none;border:0;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--cell);padding:0;margin:0;position:relative;cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
+.c:focus-visible{box-shadow:inset 0 0 0 2px var(--hi)}
+.c.t::after{content:"";position:absolute;inset:38%;border-radius:50%;background:var(--hi);opacity:.18}
+.k{position:absolute;inset:9%;border-radius:14%;background:var(--col);
+ box-shadow:inset 0 -0.28em 0 rgba(0,0,0,.22),inset 0 0.16em 0 rgba(255,255,255,.38),0 0.14em 0.3em rgba(0,0,0,.22);
+ font-size:clamp(8px,1.6vw,14px);transition:transform .12s ease}
+.k::before{content:"";position:absolute;left:14%;top:12%;width:34%;height:22%;border-radius:40%;background:rgba(255,255,255,.35)}
+.k.r{--col:var(--r)}.k.y{--col:var(--y)}.k.g{--col:var(--g)}.k.b{--col:var(--b)}
+.k.J{background:conic-gradient(from 45deg,var(--r) 0 25%,var(--y) 0 50%,var(--g) 0 75%,var(--b) 0)}
+.k.J::after{content:"";position:absolute;inset:30%;border-radius:50%;background:#fff;box-shadow:inset 0 -0.1em 0 rgba(0,0,0,.15)}
+.k.X{--col:var(--x)}
+.k.X::before{background:none}
+.k.X::after{content:"";position:absolute;inset:22%;background:var(--xi);clip-path:polygon(50% 0,61% 32%,95% 20%,72% 48%,100% 70%,64% 66%,50% 100%,36% 66%,0 70%,28% 48%,5% 20%,39% 32%)}
+.c.s .k{transform:translateY(-8%) scale(1.06);box-shadow:inset 0 -0.28em 0 rgba(0,0,0,.22),inset 0 0.16em 0 rgba(255,255,255,.38),0 0 0 0.18em var(--bg),0 0 0 0.34em var(--hi)}
+.k.pop{animation:pop .22s ease-out}
+.k.burn{animation:burn .26s ease-in forwards}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes burn{to{transform:scale(1.25);opacity:0}}
+.float{position:absolute;font-weight:800;font-stretch:125%;font-size:28px;white-space:nowrap;pointer-events:none;transform:translate(-50%,-50%);animation:up 1s ease-out forwards;color:var(--hi);text-shadow:0 0 6px var(--bg),0 0 2px var(--bg)}
+@keyframes up{to{transform:translate(-50%,-150%);opacity:0}}
+aside{display:grid;gap:22px}
+.score{border-top:2px solid var(--hi);padding-top:10px}
+.big{font-size:52px;line-height:1;font-weight:800;font-stretch:125%;font-variant-numeric:tabular-nums}
+.lab{font-size:13px;color:var(--mute)}
+.row{display:flex;justify-content:space-between;gap:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.next{display:flex;gap:10px;align-items:center;margin-top:6px}
+.ico{position:relative;display:inline-block;width:40px;height:40px;flex:none}
+.ico .k{inset:0;font-size:11px}
+.ico.sm{width:30px;height:30px;opacity:.75}
+.ico.xs{width:22px;height:22px}
+.trip{display:inline-flex;gap:2px;flex:none}.trip .ico{width:12px;height:22px}.trip .k{border-radius:3px}
+.tempo{border-top:1px solid var(--rule);padding-top:10px}
+.bonus{display:flex;align-items:center;gap:10px;margin-top:8px}
+button.act{appearance:none;font:inherit;font-weight:700;min-height:44px;padding:0 18px;border:2px solid var(--hi);background:transparent;color:var(--ink);cursor:pointer}
+button.act:hover{background:var(--hi);color:var(--bg)}
+button.act:focus-visible{outline:2px solid var(--hi);outline-offset:3px}
+.rules{border-top:1px solid var(--rule);padding-top:10px;font-size:15px}
+.rules ul{margin:6px 0 0;padding-left:18px}.rules li{margin:4px 0}
+.legend{list-style:none;padding:0!important}.legend li{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:start;margin:8px 0}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:15px;margin-top:6px}
+td{padding:3px 0;border-bottom:1px solid var(--rule)}td:last-child{text-align:right}
+.over{position:absolute;inset:0;display:none;place-items:center;background:color-mix(in srgb,var(--bg) 82%,transparent);text-align:center}
+.over.on{display:grid}
+.over h2{font-size:40px;line-height:1.05;margin:0 0 6px;font-weight:800;font-stretch:112%}
+.over p{margin:0 0 16px;color:var(--mute)}
+@media(max-width:760px){.game{grid-template-columns:minmax(0,1fr)}.boardbox{max-width:none}aside{grid-template-columns:1fr 1fr}.rules,.pts,.tempo{grid-column:1/-1}.big{font-size:40px}}
+@media(prefers-reduced-motion:reduce){.k,.k.pop,.k.burn,.float{animation:none!important;transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+ <h1>Burn Five</h1>
+ <button class="act" id="new">Новая игра</button>
+</header>
+<div class="game">
+ <div class="boardbox">
+  <div id="board" role="grid" aria-label="Игровое поле 10 на 10"></div>
+  <div class="over" id="over"><div><h2>Поле заполнено</h2><p id="overtxt"></p><button class="act" id="again">Сыграть еще</button></div></div>
+ </div>
+ <aside>
+  <div class="score">
+   <div class="lab">Очки</div>
+   <div class="big" id="score">0</div>
+   <div class="row lab"><span>Рекорд</span><span id="best">0</span></div>
+  </div>
+  <div class="score">
+   <div class="lab">Следующие цвета</div>
+   <div class="next" id="next"></div>
+  </div>
+  <div class="tempo">
+   <div class="row"><span>Ход <b id="turn">0</b></span><span id="fill">0/100</span></div>
+   <div class="lab" id="phase"></div>
+   <div class="row lab" style="margin-top:8px"><span>После этого хода</span><span id="incoming"></span></div>
+   <div class="row lab"><span>Линий сожжено</span><span id="lines">0</span></div>
+   <div class="bonus"><span id="bicon"></span><span class="lab" id="btxt"></span></div>
+  </div>
+  <div class="rules">
+   <b>Правила</b>
+   <ul>
+    <li>Ход: сдвиньте любой кубик на одну клетку по горизонтали или вертикали в пустую клетку. На телефоне проведите по кубику пальцем в нужную сторону. Мышью: нажмите на кубик, потом на соседнюю клетку, или перетащите. На клавиатуре: стрелки.</li>
+    <li>5 и больше кубиков одного цвета в ряд по горизонтали или вертикали сгорают.</li>
+    <li>Две линии одним ходом: очки удваиваются.</li>
+    <li>Если на ходу что-то сгорело, новый кубик не появляется.</li>
+    <li>Ходы 1-100: кубик раз в 2 хода. 101-250: кубик каждый ход. С 251-го: каждый третий ход 2 кубика.</li>
+    <li>Кубик, упавший в линию, тоже ее сжигает. Очки ваши.</li>
+    <li>Каждые 20 ходов на поле появляется бонус.</li>
+   </ul>
+   <ul class="legend">
+    <li><span class="ico xs"><span class="k J"></span></span><span><b>Джокер.</b> Подходит к любому цвету и сгорает вместе с линией.</span></li>
+    <li><span class="trip"><span class="ico"><span class="k g"></span></span><span class="ico"><span class="k g"></span></span><span class="ico"><span class="k g"></span></span></span><span><b>Тройка.</b> На поле падают сразу три кубика одного цвета в ряд.</span></li>
+    <li><span class="ico xs"><span class="k X"></span></span><span><b>Уничтожитель.</b> Сдвиньте его вплотную к другим кубикам: он сожжет всех, кого касается, углами тоже, и исчезнет сам. Очков не дает, но и новый кубик в этот ход не появится.</span></li>
+   </ul>
+  </div>
+  <div class="pts">
+   <b>Очки за линию</b>
+   <table><tbody id="pts"></tbody></table>
+  </div>
+ </aside>
+</div>
+</div>
+<script>
+{
+const NAMES={r:'красный',y:'желтый',g:'зеленый',b:'синий',J:'джокер',X:'уничтожитель'};
+const N=10, COLS=['r','y','g','b'], BONUS=['J','T','X'], PTS={5:10,6:20,7:50,8:100,9:200,10:500};
+const BNAME={J:'джокер',T:'тройка',X:'уничтожитель'};
+const boardEl=document.getElementById('board'), $=id=>document.getElementById(id);
+let b, turn, score, queue, sel, over, busy, nlines, nextBonus, best=0, G=null;
+const SID=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const TOUCH=matchMedia('(pointer: coarse)').matches;
+try{best=+localStorage.getItem('kubiki-best')||0}catch(e){}
+const rnd=()=>COLS[Math.floor(Math.random()*4)];
+const rndBonus=()=>BONUS[Math.floor(Math.random()*3)];
+const spawnCount=t=>t<=100?(t%2===0?1:0):t<=250?1:(t%3===0?2:1);
+const phaseText=t=>t<=100?'Фаза 1: кубик раз в 2 хода':t<=250?'Фаза 2: кубик каждый ход':'Фаза 3: каждый третий ход 2 кубика';
+const word=n=>n===0?'ничего':n===1?'1 кубик':'2 кубика';
+const icon=(t,cls='')=>t==='T'?`<span class="trip">${'<span class="ico"><span class="k g"></span></span>'.repeat(3)}</span>`:`<span class="ico ${cls}"><span class="k ${t}"></span></span>`;
+$('pts').innerHTML=Object.entries(PTS).map(([k,v])=>`<tr><td>${k} в ряд</td><td>${v}</td></tr>`).join('')+'<tr><td>Две линии одним ходом</td><td>×2</td></tr>';
+
+const cells=[];
+for(let i=0;i<N*N;i++){const c=document.createElement('button');c.className='c';c.dataset.i=i;c.setAttribute('role','gridcell');cells.push(c);boardEl.appendChild(c)}
+
+const inb=(r,q)=>r>=0&&r<N&&q>=0&&q<N;
+function runsAt(i){
+ const v=b[i]; if(!v||v==='X') return [];
+ const r=Math.floor(i/N), q=i%N, out=[];
+ for(const [dr,dc] of [[0,1],[1,0]]){
+  let best=null;
+  for(const c of (v==='J'?COLS:[v])){
+   const run=[i]; let real=v!=='J';
+   for(const s of [1,-1]){let rr=r+dr*s,cc=q+dc*s;while(inb(rr,cc)&&(b[rr*N+cc]===c||b[rr*N+cc]==='J')){if(b[rr*N+cc]===c)real=true;run.push(rr*N+cc);rr+=dr*s;cc+=dc*s}}
+   if(real&&run.length>=5&&(!best||run.length>best.length)) best=run;
+  }
+  if(best) out.push(best.sort((a,z)=>a-z));
+ }
+ return out;
+}
+function collect(idxs){
+ const seen=new Set(), kill=new Set(), lens=[]; let pts=0, n=0;
+ for(const i of idxs) for(const run of runsAt(i)){
+  const key=run.join(','); if(seen.has(key)) continue; seen.add(key);
+  pts+=PTS[Math.min(run.length,10)]; n++; lens.push(run.length); run.forEach(x=>kill.add(x));
+ }
+ return {kill,pts,n,lens};
+}
+function nbrs(i){const r=Math.floor(i/N),q=i%N,o=[];if(r>0)o.push(i-N);if(r<N-1)o.push(i+N);if(q>0)o.push(i-1);if(q<N-1)o.push(i+1);return o}
+function around(i){const r=Math.floor(i/N),q=i%N,o=[];for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)if((dr||dc)&&inb(r+dr,q+dc))o.push((r+dr)*N+q+dc);return o}
+const freeCells=()=>b.map((c,i)=>c?-1:i).filter(i=>i>=0);
+
+function report(r){
+ if(!G||G.sent==='over'||turn===0) return;
+ G.sent=r;
+ const d={gid:G.gid,sid:SID,v:2,r,tu:turn,sc:score,ln:nlines,l:G.L,dbl:G.dbl,sp:G.sp,J:G.J,Jb:G.Jb,T:G.T,X:G.X,Xb:G.Xb,Xk:G.Xk,
+  fill:b.filter(Boolean).length,dur:Math.round((Date.now()-G.t0)/1000),dev:TOUCH?'t':'m',w:innerWidth,best};
+ try{const body=JSON.stringify(d);if(!(navigator.sendBeacon&&navigator.sendBeacon('/api/game',new Blob([body],{type:'application/json'}))))fetch('/api/game',{method:'POST',body,keepalive:true,headers:{'content-type':'application/json'}}).catch(()=>{})}catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&!over)report('hidden')});
+function newGame(){
+ if(G&&!over) report('quit');
+ G={gid:Date.now().toString(36)+Math.random().toString(36).slice(2,6),t0:Date.now(),L:[0,0,0,0,0,0],dbl:0,sp:0,J:0,Jb:0,T:0,X:0,Xb:0,Xk:0,sent:''};
+ do{
+  b=Array(N*N).fill(null);
+  const free=[...Array(N*N).keys()];
+  for(let k=0;k<30;k++){const j=Math.floor(Math.random()*free.length);b[free.splice(j,1)[0]]=rnd()}
+ }while(collect(b.map((_,i)=>i)).n>0);
+ turn=0;score=0;nlines=0;sel=null;over=false;busy=false;
+ queue=[rnd(),rnd(),rnd()];nextBonus=rndBonus();
+ $('over').classList.remove('on');
+ render(new Set(b.map((c,i)=>c?i:-1).filter(i=>i>=0)));
+}
+function render(popSet=new Set()){
+ const tg=new Set();
+ if(sel!==null&&b[sel]) for(const n of nbrs(sel)) if(!b[n]) tg.add(n);
+ cells.forEach((c,i)=>{
+  c.classList.toggle('s',i===sel);c.classList.toggle('t',tg.has(i));
+  const col=b[i], k=c.firstChild;
+  if(!col){if(k)c.removeChild(k);c.setAttribute('aria-label','пусто');return}
+  if(!k||k.dataset.c!==col){if(k)c.removeChild(k);const s=document.createElement('span');s.className='k '+col;s.dataset.c=col;c.appendChild(s)}
+  const kk=c.firstChild;
+  if(popSet.has(i)){kk.classList.remove('pop');void kk.offsetWidth;kk.classList.add('pop')}
+  c.setAttribute('aria-label',NAMES[col]);
+ });
+ $('score').textContent=score;$('best').textContent=Math.max(best,score);
+ $('turn').textContent=turn;$('lines').textContent=nlines;
+ $('fill').textContent=b.filter(Boolean).length+'/100';
+ $('phase').textContent=phaseText(turn+1);
+ $('incoming').textContent=word(spawnCount(turn+1));
+ $('next').innerHTML=queue.slice(0,2).map((c,j)=>`<span class="ico ${j?'sm':''}" role="img" aria-label="${NAMES[c]}"><span class="k ${c}"></span></span>`).join('');
+ const left=20-turn%20;
+ $('bicon').innerHTML=icon(nextBonus,'xs');
+ $('btxt').textContent=`Бонус ${left===1?'после этого хода':'через '+left+' '+(left<5?'хода':'ходов')}: ${BNAME[nextBonus]}`;
+}
+const wait=ms=>new Promise(r=>setTimeout(r,matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms));
+function floatText(cellsSet,txt){
+ let x=0,y=0;cellsSet.forEach(i=>{x+=i%N+.5;y+=Math.floor(i/N)+.5});x/=cellsSet.size;y/=cellsSet.size;
+ const f=document.createElement('div');f.className='float';f.textContent=txt;f.style.left=Math.min(88,Math.max(12,x*10))+'%';f.style.top=y*10+'%';
+ boardEl.parentNode.appendChild(f);setTimeout(()=>f.remove(),1050);
+}
+async function vanish(kill){
+ kill.forEach(i=>cells[i].firstChild&&cells[i].firstChild.classList.add('burn'));
+ await wait(260);
+ kill.forEach(i=>b[i]=null);
+ if(sel!==null&&!b[sel]) sel=null;
+}
+async function burn(res){
+ const mult=res.n>=2?2:1, got=res.pts*mult;
+ if(mult>1)G.dbl++;
+ res.lens.forEach(n=>G.L[Math.min(n,10)-5]++);
+ res.kill.forEach(i=>{if(b[i]==='J')G.Jb++});
+ floatText(res.kill,'+'+got+(mult>1?' ×2':''));
+ await vanish(res.kill);
+ score+=got;nlines+=res.n;
+}
+function placeBonus(t){
+ if(t==='T'){
+  const slots=[];
+  for(let i=0;i<N*N;i++){const r=Math.floor(i/N),q=i%N;
+   if(q<=N-3&&!b[i]&&!b[i+1]&&!b[i+2])slots.push([i,i+1,i+2]);
+   if(r<=N-3&&!b[i]&&!b[i+N]&&!b[i+2*N])slots.push([i,i+N,i+2*N]);}
+  if(slots.length){const s=slots[Math.floor(Math.random()*slots.length)],c=rnd();s.forEach(i=>b[i]=c);G.T++;floatText(new Set(s),'Тройка');return s}
+  t='J';
+ }
+ const f=freeCells(); if(!f.length) return [];
+ const p=f[Math.floor(Math.random()*f.length)]; b[p]=t; G[t]++; floatText(new Set([p]),t==='J'?'Джокер':'Уничтожитель'); return [p];
+}
+async function move(from,to){
+ if(busy||over||!b[from]||b[to]||!nbrs(from).includes(to)) return;
+ busy=true;
+ const v=b[from]; b[to]=v;b[from]=null;turn++;sel=to;render();
+ let cleared=false;
+ if(v==='X'){
+  const hit=around(to).filter(j=>b[j]);
+  if(hit.length){G.Xb++;G.Xk+=hit.length;const kill=new Set([...hit,to]);floatText(kill,'Бум');await vanish(kill);cleared=true;render()}
+ }else{
+  const res=collect([to]);
+  if(res.n){await burn(res);cleared=true;render()}
+ }
+ const placed=[];
+ if(!cleared){
+  for(let j=0;j<spawnCount(turn);j++){
+   const f=freeCells(); if(!f.length) break;
+   const p=f[Math.floor(Math.random()*f.length)];
+   b[p]=queue.shift();queue.push(rnd());placed.push(p);
+  }
+ }
+ if(turn%20===0){placed.push(...placeBonus(nextBonus));nextBonus=rndBonus()}
+ render(new Set(placed));
+ if(placed.length){await wait(220);const r2=collect(placed);if(r2.n){G.sp+=r2.n;await burn(r2);render()}}
+ busy=false;
+ checkEnd();
+}
+function checkEnd(){
+ if(freeCells().length===0){
+  over=true;sel=null;render();
+  if(score>best){best=score;try{localStorage.setItem('kubiki-best',best)}catch(e){}}
+  $('overtxt').textContent=`Очки: ${score}. Ходов: ${turn}. Линий: ${nlines}. Рекорд: ${best}.`;
+  $('over').classList.add('on');
+  report('over');
+ }else if(!b.some(Boolean)){
+  const p=Math.floor(Math.random()*N*N);b[p]=queue.shift();queue.push(rnd());render(new Set([p]));
+ }
+}
+function gesture(i,dx,dy){
+ if(busy||over) return;
+ if(Math.hypot(dx,dy)>14&&b[i]){
+  const r=Math.floor(i/N),q=i%N;let to=null;
+  if(Math.abs(dx)>Math.abs(dy)){if(dx>0&&q<N-1)to=i+1;if(dx<0&&q>0)to=i-1}else{if(dy>0&&r<N-1)to=i+N;if(dy<0&&r>0)to=i-N}
+  if(to!==null&&!b[to]){move(i,to);return}
+  sel=i;render();return;
+ }
+ if(b[i]){sel=sel===i?null:i;render()}
+ else if(sel!==null&&nbrs(sel).includes(i)) move(sel,i);
+ else{sel=null;render()}
+}
+const cellAt=(x,y)=>{const el=document.elementFromPoint(x,y);const c=el&&el.closest('.c');return c?+c.dataset.i:null};
+let ts=null;
+boardEl.addEventListener('touchstart',e=>{const t=e.changedTouches[0];const i=cellAt(t.clientX,t.clientY);if(i===null)return;e.preventDefault();ts={i,x:t.clientX,y:t.clientY,id:t.identifier}},{passive:false});
+boardEl.addEventListener('touchmove',e=>{if(ts)e.preventDefault()},{passive:false});
+boardEl.addEventListener('touchend',e=>{if(!ts)return;const t=[...e.changedTouches].find(x=>x.identifier===ts.id);if(!t)return;e.preventDefault();const s=ts;ts=null;gesture(s.i,t.clientX-s.x,t.clientY-s.y)},{passive:false});
+boardEl.addEventListener('touchcancel',()=>{ts=null});
+let ps=null;
+boardEl.addEventListener('pointerdown',e=>{if(e.pointerType==='touch')return;const i=cellAt(e.clientX,e.clientY);if(i===null)return;ps={i,x:e.clientX,y:e.clientY};try{boardEl.setPointerCapture(e.pointerId)}catch(_){}});
+boardEl.addEventListener('pointerup',e=>{if(e.pointerType==='touch'||!ps)return;const s=ps;ps=null;gesture(s.i,e.clientX-s.x,e.clientY-s.y)});
+boardEl.addEventListener('keydown',e=>{
+ const c=e.target.closest('.c');if(!c)return;const i=+c.dataset.i;
+ if(e.key==='Escape'){sel=null;render();return}
+ if(e.key==='Enter'||e.key===' '){e.preventDefault();if(b[i]){sel=sel===i?null:i;render()}else if(sel!==null)move(sel,i);return}
+ const d={ArrowUp:-N,ArrowDown:N,ArrowLeft:-1,ArrowRight:1}[e.key];if(d===undefined)return;e.preventDefault();
+ const from=sel!==null?sel:(b[i]?i:null);
+ if(from!==null){const to=from+d;if(nbrs(from).includes(to)&&!b[to]){move(from,to).then(()=>{if(sel!==null)cells[sel].focus()});return}}
+ const j=i+d;if(nbrs(i).includes(j))cells[j].focus();
+});
+$('new').addEventListener('click',newGame);$('again').addEventListener('click',newGame);
+newGame();
+}
+</script>
+</body>
+</html>
