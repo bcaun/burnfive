@@ -8,3 +8,4 @@ custom_domain = true
 
 [[kv_namespaces]]
 binding = "GAMES"
+id = "848a48ab87e542ddb7d41f0319b712ea"
