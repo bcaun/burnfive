@@ -11,18 +11,22 @@
 /* VOICE: sober puzzle table, nothing shouts but the cubes
    IDEA: a printed board game sheet: ruled grid, white paper, painted wooden cubes
    PICTURE: the 10x10 board itself, large, with lit cubes (base, shadow plane, light edge)
-   COLOUR and TYPE: white ground, black ink, four cube colours as the only colour; Archivo wide for numerals
+   COLOUR and TYPE: flat white coffee ground (milk foam, fine grain), espresso ink; espresso at night; Archivo wide for numerals
    LAYOUT: board left and dominant, a narrow side column with score, next, tempo, rules; stacks under 760px */
-:root{color-scheme:light dark;--bg:light-dark(#fff,#0f0f10);--ink:light-dark(#111,#ececec);--mute:light-dark(#6b6b6b,#9a9a9a);--rule:light-dark(#e6e6e6,#26262a);--cell:light-dark(#fff,#151517);--hi:light-dark(#111,#f2f2f2);
+:root{color-scheme:light dark;--bg:light-dark(#f0e6d9,#1a120d);--ink:light-dark(#2a1d14,#f2e7da);--mute:light-dark(#7d6a59,#a99686);--rule:light-dark(#e3d5c3,#35281e);--cell:light-dark(#f9f4ed,#22180f);--hi:light-dark(#2a1d14,#f2e7da);
+--foam:light-dark(rgba(255,252,247,.9),rgba(196,140,90,.12));
 --r:#e0262f;--y:#f2b705;--g:#1d9a50;--b:#2160d8;--x:light-dark(#1c1c1e,#e8e8e8);--xi:light-dark(#fff,#111)}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Archivo,system-ui,sans-serif;overflow-x:clip}
+body{margin:0;min-height:100vh;color:var(--ink);font:16px/1.55 Archivo,system-ui,sans-serif;overflow-x:clip;
+ background:radial-gradient(ellipse 70% 55% at 32% 30%,var(--foam),transparent 70%),radial-gradient(ellipse 60% 50% at 85% 90%,var(--foam),transparent 75%),var(--bg);background-attachment:fixed}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.045;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .28 0 0 0 0 .16 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.wrap{position:relative;z-index:1}
 .wrap{max-width:1100px;margin:0 auto;padding:clamp(20px,3vw,40px) max(4vw,14px)}
 header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
 h1{font-size:32px;line-height:1.05;margin:0;font-weight:800;font-stretch:112%}
 .game{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:clamp(20px,3vw,44px);align-items:start}
-.boardbox{position:relative;width:100%;max-width:620px;aspect-ratio:1}
+.boardbox{position:relative;width:100%;max-width:620px;aspect-ratio:1;box-shadow:0 1px 0 rgba(255,255,255,.5),0 18px 40px -18px rgba(70,40,15,.35)}
 #board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(10,minmax(0,1fr));border-top:2px solid var(--hi);border-left:1px solid var(--rule);touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .c{appearance:none;border:0;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--cell);padding:0;margin:0;position:relative;cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
 .c:focus-visible{box-shadow:inset 0 0 0 2px var(--hi)}
