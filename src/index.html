@@ -152,6 +152,8 @@ const TOUCH=matchMedia('(pointer: coarse)').matches;
 const bestKey=()=>N===10?'kubiki-best':'burnfive-best-'+N;
 function loadBest(){best=0;try{best=+localStorage.getItem(bestKey())||0}catch(e){}}
 const rnd=()=>COLS[Math.floor(Math.random()*4)];
+// Следующий цвет в очереди никогда не совпадает с предыдущим
+const nextColor=()=>{const last=queue&&queue.length?queue[queue.length-1]:null;let c;do{c=rnd()}while(c===last);return c};
 const rndBonus=()=>BONUS[Math.floor(Math.random()*3)];
 const spawnCount=t=>t<=C.p1?(t%2===0?1:0):t<=C.p2?1:C.p3===2?2:(t%3===0?2:1);
 const p3Text=()=>C.p3===2?'2 кубика каждый ход':'каждый третий ход 2 кубика';
@@ -217,7 +219,7 @@ function newGame(){
   for(let k=0;k<C.start;k++){const j=Math.floor(Math.random()*free.length);b[free.splice(j,1)[0]]=rnd()}
  }while(collect(b.map((_,i)=>i)).n>0);
  turn=0;score=0;nlines=0;sel=null;over=false;busy=false;
- queue=[rnd(),rnd(),rnd()];nextBonus=rndBonus();
+ queue=[];for(let k=0;k<3;k++)queue.push(nextColor());nextBonus=rndBonus();
  $('over').classList.remove('on');
  render(new Set(b.map((c,i)=>c?i:-1).filter(i=>i>=0)));
 }
@@ -293,7 +295,7 @@ async function move(from,to){
   for(let j=0;j<spawnCount(turn);j++){
    const f=freeCells(); if(!f.length) break;
    const p=f[Math.floor(Math.random()*f.length)];
-   b[p]=queue.shift();queue.push(rnd());placed.push(p);
+   b[p]=queue.shift();queue.push(nextColor());placed.push(p);
   }
  }
  if(turn%C.bonus===0){placed.push(...placeBonus(nextBonus));nextBonus=rndBonus()}
@@ -310,7 +312,7 @@ function checkEnd(){
   $('over').classList.add('on');
   report('over');
  }else if(!b.some(Boolean)){
-  const p=Math.floor(Math.random()*N*N);b[p]=queue.shift();queue.push(rnd());render(new Set([p]));
+  const p=Math.floor(Math.random()*N*N);b[p]=queue.shift();queue.push(nextColor());render(new Set([p]));
  }
 }
 function gesture(i,dx,dy){
