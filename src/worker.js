@@ -15,7 +15,9 @@ async function saveGame(req, env){
   if (!/^[a-z0-9]{8,20}$/.test(d.gid || '') || !/^[a-z0-9]{8,20}$/.test(d.sid || '')) return new Response('bad id', {status:400});
   const m = {n: d.n === 8 ? 8 : 10, sid:d.sid, r: REASON[d.r] ? d.r : 'over', u: Date.now(), dev: d.dev === 't' ? 't' : 'm', v: clamp(d.v, 99)};
   for (const k of NUM) m[k] = clamp(d[k], 10000000);
-  m.l = Array.isArray(d.l) ? d.l.slice(0,6).map(x => clamp(x, 10000)) : [0,0,0,0,0,0];
+  // l: число линий длиной 4..10 (с версии 3; раньше 5..10)
+  const l = Array.isArray(d.l) ? d.l.map(x => clamp(x, 10000)) : [];
+  m.l = (m.v >= 3 ? l : [0, ...l]).concat([0,0,0,0,0,0,0]).slice(0,7);
   const prev = await env.GAMES.getWithMetadata('g:' + d.gid);
   if (prev && prev.metadata && prev.metadata.r === 'over') return new Response(null, {status:204});
   await env.GAMES.put('g:' + d.gid, '', {metadata: m});
@@ -42,7 +44,8 @@ function statsPage(all, key, sel){
   const g = sel === 'all' ? all : all.filter(x => (x.n||10) === +sel);
   const fin = g.filter(x => x.r === 'over'), players = new Set(g.map(x => x.sid)).size;
   const sum = f => g.reduce((a,x) => a + (x[f]||0), 0);
-  const lines = [0,1,2,3,4,5].map(i => g.reduce((a,x) => a + ((x.l||[])[i]||0), 0));
+  const L7 = x => (x.l||[]).length === 7 ? x.l : [0, ...(x.l||[])];
+  const lines = [0,1,2,3,4,5,6].map(i => g.reduce((a,x) => a + (L7(x)[i]||0), 0));
   const allLines = lines.reduce((a,b)=>a+b,0);
   const B = sel === '8' ? [[0,64],[65,160],[161,200],[201,240],[241,280],[281,1e9]] : [[0,100],[101,250],[251,300],[301,350],[351,400],[401,1e9]];
   const ends = B.map(([a,b]) => fin.filter(x => x.tu>=a && x.tu<=b).length);
@@ -71,7 +74,7 @@ a{color:#111}</style></head><body><div class="w">
 <div class="k">${kpi.map(([a,b]) => `<div><span class="m">${a}</span><b>${b}</b></div>`).join('')}</div>
 <h2>На каком ходу заканчиваются доигранные партии</h2>
 ${ends.map((n,i) => `<div class="bar"><span>${endLabels[i]}</span><span><i style="width:${n*100/maxEnd}%"></i></span><span>${n}</span></div>`).join('')}
-<h2>Линии</h2><div class="s"><table><tr><th>Длина</th>${[5,6,7,8,9,'10'].map(x=>`<th>${x}</th>`).join('')}<th>Двойных ходов (×2)</th><th>Сожгли упавшие кубики</th></tr>
+<h2>Линии</h2><div class="s"><table><tr><th>Длина</th>${[4,5,6,7,8,9,'10'].map(x=>`<th>${x}</th>`).join('')}<th>Двойных ходов (×2)</th><th>Сожгли упавшие кубики</th></tr>
 <tr><td>Сколько раз</td>${lines.map(n=>`<td>${n}</td>`).join('')}<td>${sum('dbl')}</td><td>${sum('sp')} (${pct(sum('sp'), allLines)})</td></tr></table></div>
 <h2>Бонусы</h2><table><tr><th>Бонус</th><th>Появился</th><th>Использован</th><th></th></tr>${bonus.map(b=>`<tr><td>${b[0]}</td><td>${b[1]}</td><td>${b[2]}</td><td class="m">${b[3]}</td></tr>`).join('')}</table>
 <h2>Партии</h2><div class="m">Последние 500. Игрок: последние 4 знака случайного номера сессии, без личных данных.</div>
@@ -80,8 +83,8 @@ ${ends.map((n,i) => `<div class="bar"><span>${endLabels[i]}</span><span><i style
 }
 
 function csv(g){
-  const head = ['date','board','session','outcome','turns','score','lines','len5','len6','len7','len8','len9','len10','double','spawn_lines','joker','joker_burned','triple','destroyer','destroyer_used','destroyer_killed','fill','seconds','device','width','best'];
-  const rows = g.map(x => [new Date(x.u).toISOString(), (x.n||10), x.sid, x.r, x.tu, x.sc, x.ln, ...(x.l||[0,0,0,0,0,0]), x.dbl, x.sp, x.J, x.Jb, x.T, x.X, x.Xb, x.Xk, x.fill, x.dur, x.dev==='t'?'phone':'desktop', x.w, x.best].join(','));
+  const head = ['date','board','session','outcome','turns','score','lines','len4','len5','len6','len7','len8','len9','len10','double','spawn_lines','joker','joker_burned','triple','destroyer','destroyer_used','destroyer_killed','fill','seconds','device','width','best'];
+  const rows = g.map(x => [new Date(x.u).toISOString(), (x.n||10), x.sid, x.r, x.tu, x.sc, x.ln, ...((x.l||[]).length === 7 ? x.l : [0, ...(x.l||[0,0,0,0,0,0])]), x.dbl, x.sp, x.J, x.Jb, x.T, x.X, x.Xb, x.Xk, x.fill, x.dur, x.dev==='t'?'phone':'desktop', x.w, x.best].join(','));
   return [head.join(','), ...rows].join('\n');
 }
 

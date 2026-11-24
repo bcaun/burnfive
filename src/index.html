@@ -117,7 +117,7 @@ td{padding:3px 0;border-bottom:1px solid var(--rule)}td:last-child{text-align:ri
    <b>Правила</b>
    <ul>
     <li>Ход: сдвиньте любой кубик на одну клетку по горизонтали или вертикали в пустую клетку. На телефоне проведите по кубику пальцем в нужную сторону. Мышью: нажмите на кубик, потом на соседнюю клетку, или перетащите. На клавиатуре: стрелки.</li>
-    <li>5 и больше кубиков одного цвета в ряд по горизонтали или вертикали сгорают.</li>
+    <li id="rline"></li>
     <li>Две линии одним ходом: очки удваиваются.</li>
     <li>Если на ходу что-то сгорело, новый кубик не появляется.</li>
     <li id="rtempo"></li>
@@ -140,10 +140,10 @@ td{padding:3px 0;border-bottom:1px solid var(--rule)}td:last-child{text-align:ri
 <script>
 {
 const NAMES={r:'красный',y:'желтый',g:'зеленый',b:'синий',J:'джокер',X:'уничтожитель'};
-const CFG={8:{start:19,p1:64,p2:160,bonus:13},10:{start:30,p1:100,p2:250,bonus:20}};
+const CFG={8:{start:20,p1:64,p2:160,bonus:13,min:4,pts:{4:10,5:20,6:50,7:100,8:200}},10:{start:30,p1:100,p2:250,bonus:20,min:5,pts:{5:10,6:20,7:50,8:100,9:200,10:500}}};
 let N=8, C=CFG[8];
 try{const z=+localStorage.getItem('burnfive-size');if(CFG[z]){N=z;C=CFG[z]}}catch(e){}
-const COLS=['r','y','g','b'], BONUS=['J','T','X'], PTS={5:10,6:20,7:50,8:100,9:200,10:500};
+const COLS=['r','y','g','b'], BONUS=['J','T','X'];
 const BNAME={J:'джокер',T:'тройка',X:'уничтожитель'};
 const boardEl=document.getElementById('board'), $=id=>document.getElementById(id);
 let b, turn, score, queue, sel, over, busy, nlines, nextBonus, best=0, G=null;
@@ -160,7 +160,8 @@ const icon=(t,cls='')=>t==='T'?`<span class="trip">${'<span class="ico"><span cl
 function rulesText(){
  $('rtempo').textContent=`Ходы 1-${C.p1}: кубик раз в 2 хода. ${C.p1+1}-${C.p2}: кубик каждый ход. С ${C.p2+1}-го: каждый третий ход 2 кубика.`;
  $('rbonus').textContent=`Каждые ${C.bonus} ходов на поле появляется бонус.`;
- $('pts').innerHTML=Object.entries(PTS).filter(([k])=>+k<=N).map(([k,v])=>`<tr><td>${k} в ряд</td><td>${v}</td></tr>`).join('')+'<tr><td>Две линии одним ходом</td><td>×2</td></tr>';
+ $('rline').textContent=`${C.min} и больше кубиков одного цвета в ряд по горизонтали или вертикали сгорают.`;
+ $('pts').innerHTML=Object.entries(C.pts).map(([k,v])=>`<tr><td>${k} в ряд</td><td>${v}</td></tr>`).join('')+'<tr><td>Две линии одним ходом</td><td>×2</td></tr>';
  document.querySelectorAll('.size button').forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.n===N)));
 }
 
@@ -180,7 +181,7 @@ function runsAt(i){
   for(const c of (v==='J'?COLS:[v])){
    const run=[i]; let real=v!=='J';
    for(const s of [1,-1]){let rr=r+dr*s,cc=q+dc*s;while(inb(rr,cc)&&(b[rr*N+cc]===c||b[rr*N+cc]==='J')){if(b[rr*N+cc]===c)real=true;run.push(rr*N+cc);rr+=dr*s;cc+=dc*s}}
-   if(real&&run.length>=5&&(!best||run.length>best.length)) best=run;
+   if(real&&run.length>=C.min&&(!best||run.length>best.length)) best=run;
   }
   if(best) out.push(best.sort((a,z)=>a-z));
  }
@@ -190,7 +191,7 @@ function collect(idxs){
  const seen=new Set(), kill=new Set(), lens=[]; let pts=0, n=0;
  for(const i of idxs) for(const run of runsAt(i)){
   const key=run.join(','); if(seen.has(key)) continue; seen.add(key);
-  pts+=PTS[Math.min(run.length,10)]; n++; lens.push(run.length); run.forEach(x=>kill.add(x));
+  pts+=C.pts[Math.min(run.length,N)]; n++; lens.push(run.length); run.forEach(x=>kill.add(x));
  }
  return {kill,pts,n,lens};
 }
@@ -201,14 +202,14 @@ const freeCells=()=>b.map((c,i)=>c?-1:i).filter(i=>i>=0);
 function report(r){
  if(!G||G.sent==='over'||turn===0) return;
  G.sent=r;
- const d={gid:G.gid,sid:SID,v:2,r,tu:turn,sc:score,ln:nlines,l:G.L,dbl:G.dbl,sp:G.sp,J:G.J,Jb:G.Jb,T:G.T,X:G.X,Xb:G.Xb,Xk:G.Xk,
+ const d={gid:G.gid,sid:SID,v:3,r,tu:turn,sc:score,ln:nlines,l:G.L,dbl:G.dbl,sp:G.sp,J:G.J,Jb:G.Jb,T:G.T,X:G.X,Xb:G.Xb,Xk:G.Xk,
   fill:b.filter(Boolean).length,dur:Math.round((Date.now()-G.t0)/1000),dev:TOUCH?'t':'m',w:innerWidth,best,n:N};
  try{const body=JSON.stringify(d);if(!(navigator.sendBeacon&&navigator.sendBeacon('/api/game',new Blob([body],{type:'application/json'}))))fetch('/api/game',{method:'POST',body,keepalive:true,headers:{'content-type':'application/json'}}).catch(()=>{})}catch(e){}
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&!over)report('hidden')});
 function newGame(){
  if(G&&!over) report('quit');
- G={gid:Date.now().toString(36)+Math.random().toString(36).slice(2,6),t0:Date.now(),L:[0,0,0,0,0,0],dbl:0,sp:0,J:0,Jb:0,T:0,X:0,Xb:0,Xk:0,sent:''};
+ G={gid:Date.now().toString(36)+Math.random().toString(36).slice(2,6),t0:Date.now(),L:[0,0,0,0,0,0,0],dbl:0,sp:0,J:0,Jb:0,T:0,X:0,Xb:0,Xk:0,sent:''};
  do{
   b=Array(N*N).fill(null);
   const free=[...Array(N*N).keys()];
@@ -256,7 +257,7 @@ async function vanish(kill){
 async function burn(res){
  const mult=res.n>=2?2:1, got=res.pts*mult;
  if(mult>1)G.dbl++;
- res.lens.forEach(n=>G.L[Math.min(n,10)-5]++);
+ res.lens.forEach(n=>G.L[Math.min(n,10)-4]++);
  res.kill.forEach(i=>{if(b[i]==='J')G.Jb++});
  floatText(res.kill,'+'+got+(mult>1?' ×2':''));
  await vanish(res.kill);
