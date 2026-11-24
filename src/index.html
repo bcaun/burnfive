@@ -140,7 +140,7 @@ td{padding:3px 0;border-bottom:1px solid var(--rule)}td:last-child{text-align:ri
 <script>
 {
 const NAMES={r:'красный',y:'желтый',g:'зеленый',b:'синий',J:'джокер',X:'уничтожитель'};
-const CFG={8:{start:20,p1:64,p2:160,bonus:13,min:4,pts:{4:10,5:20,6:50,7:100,8:200}},10:{start:30,p1:100,p2:250,bonus:20,min:5,pts:{5:10,6:20,7:50,8:100,9:200,10:500}}};
+const CFG={8:{start:20,p1:64,p2:160,p3:2,bonus:13,min:4,pts:{4:10,5:20,6:50,7:100,8:200}},10:{start:30,p1:100,p2:250,p3:1,bonus:20,min:5,pts:{5:10,6:20,7:50,8:100,9:200,10:500}}};
 let N=8, C=CFG[8];
 try{const z=+localStorage.getItem('burnfive-size');if(CFG[z]){N=z;C=CFG[z]}}catch(e){}
 const COLS=['r','y','g','b'], BONUS=['J','T','X'];
@@ -153,12 +153,13 @@ const bestKey=()=>N===10?'kubiki-best':'burnfive-best-'+N;
 function loadBest(){best=0;try{best=+localStorage.getItem(bestKey())||0}catch(e){}}
 const rnd=()=>COLS[Math.floor(Math.random()*4)];
 const rndBonus=()=>BONUS[Math.floor(Math.random()*3)];
-const spawnCount=t=>t<=C.p1?(t%2===0?1:0):t<=C.p2?1:(t%3===0?2:1);
-const phaseText=t=>t<=C.p1?'Фаза 1: кубик раз в 2 хода':t<=C.p2?'Фаза 2: кубик каждый ход':'Фаза 3: каждый третий ход 2 кубика';
+const spawnCount=t=>t<=C.p1?(t%2===0?1:0):t<=C.p2?1:C.p3===2?2:(t%3===0?2:1);
+const p3Text=()=>C.p3===2?'2 кубика каждый ход':'каждый третий ход 2 кубика';
+const phaseText=t=>t<=C.p1?'Фаза 1: кубик раз в 2 хода':t<=C.p2?'Фаза 2: кубик каждый ход':'Фаза 3: '+p3Text();
 const word=n=>n===0?'ничего':n===1?'1 кубик':'2 кубика';
 const icon=(t,cls='')=>t==='T'?`<span class="trip">${'<span class="ico"><span class="k g"></span></span>'.repeat(3)}</span>`:`<span class="ico ${cls}"><span class="k ${t}"></span></span>`;
 function rulesText(){
- $('rtempo').textContent=`Ходы 1-${C.p1}: кубик раз в 2 хода. ${C.p1+1}-${C.p2}: кубик каждый ход. С ${C.p2+1}-го: каждый третий ход 2 кубика.`;
+ $('rtempo').textContent=`Ходы 1-${C.p1}: кубик раз в 2 хода. ${C.p1+1}-${C.p2}: кубик каждый ход. С ${C.p2+1}-го: ${p3Text()}.`;
  $('rbonus').textContent=`Каждые ${C.bonus} ходов на поле появляется бонус.`;
  $('rline').textContent=`${C.min} и больше кубиков одного цвета в ряд по горизонтали или вертикали сгорают.`;
  $('pts').innerHTML=Object.entries(C.pts).map(([k,v])=>`<tr><td>${k} в ряд</td><td>${v}</td></tr>`).join('')+'<tr><td>Две линии одним ходом</td><td>×2</td></tr>';
