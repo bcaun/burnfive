@@ -31,7 +31,10 @@ function drawCells(v,pop=new Set(),cls=''){
  cells.forEach((c,i)=>{
   c.classList.toggle('s',i===sel);c.classList.toggle('t',tg.has(i));
   const col=v.b[i];let k=c.querySelector('.k');
-  if(!col){if(k)k.remove();c.setAttribute('aria-label',s.T[i]?TNAME[s.T[i]]||'портал':'пусто');return}
+  const sj=!busy&&!s.over&&!col?(s.seeds||[]).indexOf(i):-1;let sd=c.querySelector('.seed');
+  if(sj>=0){const sc=s.queue[sj];if(!sd||sd.dataset.c!==sc){if(sd)sd.remove();sd=document.createElement('span');sd.className='seed';sd.dataset.c=sc;sd.style.setProperty('--sc',`var(--${sc})`);c.appendChild(sd)}}
+  else if(sd)sd.remove();
+  if(!col){if(k)k.remove();c.setAttribute('aria-label',(s.T[i]?TNAME[s.T[i]]||'портал':'пусто')+(sj>=0?`, сюда упадет ${NAMES[s.queue[sj]]}`:''));return}
   if(!k||k.dataset.c!==col){if(k)k.remove();k=document.createElement('span');k.className='k '+col;k.dataset.c=col;c.appendChild(k)}
   const cr=v.k[i]>0;k.classList.toggle('cr',cr);k.classList.toggle('hot',cr&&v.k[i]<=3);
   if(cr)k.dataset.n=v.k[i];else delete k.dataset.n;
@@ -64,8 +67,15 @@ function panel(){
  $('fill').textContent=`${s.b.filter(Boolean).length}/${s.T.filter(t=>t!=='P').length}`;
  $('phase').textContent=phaseText(s.turn+1);
  $('incoming').textContent=word(BF.spawnCount(s.cfg,s.turn+1));
+ const cap=s.T.filter(t=>t!=='P').length,fillN=s.b.filter(Boolean).length,heat=Math.max(0,Math.min(1,(fillN/cap-0.7)/0.25));
+ document.querySelector('.boardbox').style.setProperty('--side',heat?`color-mix(in srgb,#e0483a ${Math.round(heat*100)}%,var(--slabside))`:'');
  $('next').innerHTML=s.queue.slice(0,2).map((c,j)=>`<span class="ico ${j?'sm':''}" role="img" aria-label="${NAMES[c]}"><span class="k ${c}"></span></span>`).join('');
+ $('hnext').innerHTML=$('next').innerHTML;
  const be=s.cfg.bonusEvery;$('bonusrow').hidden=!be;
+ if(be){const left=be-s.turn%be;$('hbonus').innerHTML=icon(s.nextBonus,'xs')+`<span>через ${left}</span>`}else $('hbonus').innerHTML='';
+ if(mode==='l'&&lvIdx!==null){const gp=BF.goalProgress(s),left=LEVELS[lvIdx].moves-s.turn;$('hlab').textContent=`Цель ${gp.have}/${gp.need}`;$('hscore').textContent=left;$('hlab').textContent+=', ходов';}
+ else{$('hlab').textContent='Очки';$('hscore').textContent=s.score}
+ $('undo').disabled=!(G&&G.prev&&!G.undone&&!s.over&&!busy);
  if(be){const left=be-s.turn%be;$('bicon').innerHTML=icon(s.nextBonus,'xs');$('btxt').textContent=`Бонус ${left===1?'после этого хода':'через '+left+' '+plural(left,'ход','хода','ходов')}: ${BNAME[s.nextBonus]}`}
  if(mode==='l'&&lvIdx!==null){
   const lv=LEVELS[lvIdx],gp=BF.goalProgress(s);
@@ -87,6 +97,8 @@ function rules(){
  if(c.tempo.every)o.push(phaseText(1)+'.');
  else o.push(`Ходы 1-${c.tempo.p1}: кубик раз в 2 хода. ${c.tempo.p1+1}-${c.tempo.p2}: кубик каждый ход. С ${c.tempo.p2+1}-го: ${c.tempo.p3===2?'2 кубика каждый ход':'каждый третий ход 2 кубика'}.`);
  if(c.crack&&c.crack.rate)o.push(`Кубик с трещиной и числом станет камнем через столько ходов${c.crack.from>1?` (трещины появляются с ${c.crack.from}-го хода)`:''}. Камень не двигается, не горит и мешает линиям. Убрать его может только уничтожитель.`);
+ o.push('Бледные кубики с пунктиром показывают, куда упадут следующие кубики. Если клетку займете вы, кубик упадет в другое место.');
+ o.push('Одну ошибку за партию можно отменить кнопкой со стрелкой назад.'+(mode==='d'?'':' Если задуматься дольше 6 секунд, игра подскажет ход, покачав нужный кубик.'));
  if(c.bonusEvery)o.push(`Каждые ${c.bonusEvery} ${plural(c.bonusEvery,'ход','хода','ходов')} на поле появляется бонус.`);
  if(mode==='l')o.push(`На уровень дается ${c.moves} ${plural(c.moves,'ход','хода','ходов')}.`);
  $('rules').innerHTML=o.map(x=>`<li>${x}</li>`).join('');
@@ -140,10 +152,10 @@ function startLevel(j){
 }
 function begin(state){
  s=state;sel=null;busy=false;
- G={gid:Date.now().toString(36)+Math.random().toString(36).slice(2,6),t0:Date.now(),sent:''};
+ G={gid:Date.now().toString(36)+Math.random().toString(36).slice(2,6),t0:Date.now(),sent:'',prev:null,undone:false};clearHint();
  $('over').classList.remove('on');
  build();drawCells({b:s.b.slice(),k:s.k.slice()},new Set(s.b.map((c,i)=>c?i:-1).filter(i=>i>=0)),'pop');
- panel();rules();
+ panel();rules();armHint();
 }
 
 // ---------- ход и анимация ----------
@@ -155,7 +167,8 @@ function floatText(list,txt){
 }
 async function doMove(from,d){
  if(busy||s.over||!BF.canMove(s,from,d))return;
- busy=true;
+ busy=true;clearHint();
+ G.prev=G.undone?null:BF.clone(s);
  const ev=BF.move(s,from,d);
  for(const e of ev){
   if(e.type==='move'){sel=e.player;drawCells(e.snap,new Set(e.painted),'flash');if(e.slid||e.portal)await wait(120);else await wait(60)}
@@ -168,9 +181,9 @@ async function doMove(from,d){
   else if(e.type==='spawn'){drawCells(e.snap,new Set(e.cells),'pop');if(e.bonus)floatText(e.cells,e.bonus==='T'?'Тройка':BNAME[e.bonus][0].toUpperCase()+BNAME[e.bonus].slice(1));await wait(230)}
  }
  if(sel!==null&&!s.b[sel])sel=null;
- drawCells({b:s.b.slice(),k:s.k.slice()});panel();
  busy=false;
- if(s.over)finish();
+ drawCells({b:s.b.slice(),k:s.k.slice()});panel();
+ if(s.over)finish();else armHint();
 }
 function finish(){
  sel=null;drawCells({b:s.b.slice(),k:s.k.slice()});
@@ -211,7 +224,7 @@ function report(r){
  if(!G||!s||G.sent==='over'||s.turn===0)return;
  G.sent=r;const st=s.st;
  const d={gid:G.gid,sid:SID,v:4,r,tu:s.turn,sc:s.score,ln:s.lines,l:st.L,dbl:st.dbl,sp:st.sp,J:st.J,Jb:st.Jb,T:st.T,X:st.X,Xb:st.Xb,Xk:st.Xk,
-  push:st.push,cr:st.cr,stone:st.stone,fill:s.b.filter(Boolean).length,dur:Math.round((Date.now()-G.t0)/1000),dev:TOUCH?'t':'m',w:innerWidth,
+  push:st.push,cr:st.cr,stone:st.stone,fill:s.b.filter(Boolean).length,dur:Math.round((Date.now()-G.t0)/1000),dev:TOUCH?'t':'m',w:innerWidth,un:G.undone?1:0,
   best:mode==='e'?ls.get(bestKey(),0):0,n:s.n,m:mode,lv:mode==='l'&&lvIdx!==null?LEVELS[lvIdx].id:0,won:s.won?1:0,day:mode==='d'?dayDate:''};
  try{const body=JSON.stringify(d);if(!(navigator.sendBeacon&&navigator.sendBeacon('/api/game',new Blob([body],{type:'application/json'}))))fetch('/api/game',{method:'POST',body,keepalive:true,headers:{'content-type':'application/json'}}).catch(()=>{})}catch(e){}
 }
@@ -230,6 +243,38 @@ async function submitDay(){
   if(r.ok){const j=await r.json();drawBoard(j.top);if(j.rank)$('overtxt').textContent+=` Место в таблице: ${j.rank} из ${j.total}.`}}catch(e){}
 }
 
+// ---------- подсказка, отмена, предпросмотр ----------
+const DV=[[0,-1],[0,1],[-1,0],[1,0]];
+let hintT=null;
+function clearHint(){clearTimeout(hintT);hintT=null;cells.forEach(c=>{const k=c.querySelector('.k.wig');if(k)k.classList.remove('wig')})}
+function armHint(){
+ clearHint();
+ if(mode==='d'||!s||s.over)return;
+ hintT=setTimeout(()=>{
+  if(busy||!s||s.over||!$('lvpick').hidden||$('over').classList.contains('on'))return;
+  const m=BF.bestMove(s,0);if(!m)return;
+  const k=cells[m[0]].querySelector('.k');if(!k)return;
+  k.style.setProperty('--nx',DV[m[1]][0]*14+'%');k.style.setProperty('--ny',DV[m[1]][1]*14+'%');
+  k.classList.remove('wig');void k.offsetWidth;k.classList.add('wig');
+  setTimeout(armHint,1500);
+ },6000);
+}
+function undo(){
+ if(busy||!G||!G.prev||G.undone||s.over)return;
+ s=G.prev;G.prev=null;G.undone=true;sel=null;
+ drawCells({b:s.b.slice(),k:s.k.slice()});panel();armHint();
+}
+let nudged=[];
+function clearNudge(){nudged.forEach(k=>k.classList.remove('nudge'));nudged=[]}
+function preview(i,dx,dy){
+ clearNudge();
+ if(busy||!s||s.over||!s.b[i]||Math.hypot(dx,dy)<14)return;
+ const d=Math.abs(dx)>Math.abs(dy)?(dx>0?3:2):(dy>0?1:0);
+ const p=BF.plan(s,i,d);if(!p)return;
+ for(const j of p.chain){const k=cells[j].querySelector('.k');if(!k)continue;k.style.setProperty('--nx',DV[d][0]*18+'%');k.style.setProperty('--ny',DV[d][1]*18+'%');k.classList.add('nudge');nudged.push(k)}
+}
+['pointerdown','touchstart','keydown'].forEach(t=>document.addEventListener(t,()=>{if(s&&!busy)armHint()},{passive:true}));
+
 // ---------- управление ----------
 function dirTo(a,b){const n=s.n;if(b===a-n)return 0;if(b===a+n)return 1;if(b===a-1&&a%n)return 2;if(b===a+1&&b%n)return 3;return -1}
 function gesture(i,dx,dy){
@@ -246,12 +291,13 @@ function gesture(i,dx,dy){
 const cellAt=(x,y)=>{const el=document.elementFromPoint(x,y);const c=el&&el.closest('.c');return c&&boardEl.contains(c)?+c.dataset.i:null};
 let ts=null;
 boardEl.addEventListener('touchstart',e=>{const t=e.changedTouches[0];const i=cellAt(t.clientX,t.clientY);if(i===null)return;e.preventDefault();ts={i,x:t.clientX,y:t.clientY,id:t.identifier}},{passive:false});
-boardEl.addEventListener('touchmove',e=>{if(ts)e.preventDefault()},{passive:false});
-boardEl.addEventListener('touchend',e=>{if(!ts)return;const t=[...e.changedTouches].find(x=>x.identifier===ts.id);if(!t)return;e.preventDefault();const st=ts;ts=null;gesture(st.i,t.clientX-st.x,t.clientY-st.y)},{passive:false});
-boardEl.addEventListener('touchcancel',()=>{ts=null});
+boardEl.addEventListener('touchmove',e=>{if(!ts)return;e.preventDefault();const t=[...e.changedTouches].find(x=>x.identifier===ts.id);if(t)preview(ts.i,t.clientX-ts.x,t.clientY-ts.y)},{passive:false});
+boardEl.addEventListener('touchend',e=>{if(!ts)return;const t=[...e.changedTouches].find(x=>x.identifier===ts.id);if(!t)return;e.preventDefault();const st=ts;ts=null;clearNudge();gesture(st.i,t.clientX-st.x,t.clientY-st.y)},{passive:false});
+boardEl.addEventListener('touchcancel',()=>{ts=null;clearNudge()});
 let ps=null;
 boardEl.addEventListener('pointerdown',e=>{if(e.pointerType==='touch')return;const i=cellAt(e.clientX,e.clientY);if(i===null)return;ps={i,x:e.clientX,y:e.clientY};try{boardEl.setPointerCapture(e.pointerId)}catch(_){}});
-boardEl.addEventListener('pointerup',e=>{if(e.pointerType==='touch'||!ps)return;const st=ps;ps=null;gesture(st.i,e.clientX-st.x,e.clientY-st.y)});
+boardEl.addEventListener('pointermove',e=>{if(e.pointerType==='touch'||!ps)return;preview(ps.i,e.clientX-ps.x,e.clientY-ps.y)});
+boardEl.addEventListener('pointerup',e=>{if(e.pointerType==='touch'||!ps)return;const st=ps;ps=null;clearNudge();gesture(st.i,e.clientX-st.x,e.clientY-st.y)});
 boardEl.addEventListener('keydown',e=>{
  const c=e.target.closest('.c');if(!c||!s)return;const i=+c.dataset.i,n=s.n;
  if(e.key==='Escape'){sel=null;drawCells(view);return}
@@ -261,6 +307,7 @@ boardEl.addEventListener('keydown',e=>{
  if(from!==null&&BF.canMove(s,from,d)){doMove(from,d).then(()=>{if(sel!==null)cells[sel].focus()});return}
  const j=BF.step(s,i,d);if(j>=0)cells[j].focus();
 });
+$('undo').addEventListener('click',undo);
 $('lvpick').addEventListener('click',e=>{const b=e.target.closest('.lv');if(b&&!b.disabled)startLevel(+b.dataset.j)});
 document.querySelectorAll('.mode button').forEach(b=>b.addEventListener('click',()=>{if(!busy)setMode(b.dataset.m)}));
 document.querySelectorAll('.size button').forEach(b=>b.addEventListener('click',()=>{
@@ -269,6 +316,6 @@ $('new').addEventListener('click',()=>{if(busy)return;if(s&&!s.over)report('quit
 $('reday').addEventListener('click',()=>{if(busy)return;if(s&&!s.over)report('quit');startDaily()});
 $('relevel').addEventListener('click',()=>{if(busy||lvIdx===null)return;if(!s.over)report('quit');startLevel(lvIdx)});
 $('tolevels').addEventListener('click',()=>{if(busy)return;if(s&&!s.over)report('quit');$('over').classList.remove('on');showLevels()});
-window.BFUI={get s(){return s},doMove,setMode,startLevel};
+window.BFUI={get s(){return s},doMove,setMode,startLevel,undo};
 setMode(mode);
 }

@@ -44,17 +44,17 @@ button.act:focus-visible{outline:3px solid color-mix(in srgb,var(--tint) 55%,tra
 button.act{appearance:none;font:700 16px/1 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;min-height:44px;padding:0 20px;border:0;border-radius:999px;background:var(--tint);color:var(--onTint);cursor:pointer;box-shadow:0 6px 16px -6px rgba(90,60,190,.6);transition:transform .12s}
 button.act:active{transform:scale(.96)}
 .game{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:clamp(20px,3vw,40px);align-items:start}
-.boardbox{position:relative;width:100%;max-width:600px;aspect-ratio:1;border-radius:22px;background:var(--slab);
- box-shadow:0 14px 0 var(--slabside),0 30px 50px -14px rgba(120,60,40,.45),inset 0 1px 0 rgba(255,255,255,.7)}
+.boardbox{transition:box-shadow .6s;position:relative;width:100%;max-width:600px;aspect-ratio:1;border-radius:22px;background:var(--slab);
+ box-shadow:0 14px 0 var(--side,var(--slabside)),0 30px 50px -14px rgba(120,60,40,.45),inset 0 1px 0 rgba(255,255,255,.7)}
 #board{position:absolute;inset:0;padding:8px;gap:4px;display:grid;grid-template-columns:repeat(var(--n,8),minmax(0,1fr));grid-template-rows:repeat(var(--n,8),minmax(0,1fr));touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .c{appearance:none;border:0;border-radius:22%;background:var(--tile);box-shadow:inset 0 0 0 1px var(--tileb);padding:0;margin:0;position:relative;cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
 .c:focus-visible{box-shadow:inset 0 0 0 2px var(--tint)}
 .c.t{background:color-mix(in srgb,var(--tint) 16%,var(--tile))}
 .c.t::after{content:"";position:absolute;inset:40%;border-radius:50%;background:var(--tint);opacity:.45}
-.k{position:absolute;inset:6% 6% 4%;border-radius:24%;background:linear-gradient(155deg,var(--kl) 0%,var(--kb) 55%);
+.k{--shape:none;position:absolute;inset:6% 6% 4%;border-radius:24%;background:var(--shape) 50% 40%/42% 42% no-repeat,linear-gradient(155deg,var(--kl) 0%,var(--kb) 55%);
  box-shadow:inset 0 -0.42em 0 var(--ks),inset 0 0.14em 0 rgba(255,255,255,.4),0 0.25em 0.4em -0.1em rgba(90,40,30,.35);
  font-size:clamp(7px,1.5vw,13px);transition:transform .16s cubic-bezier(.3,1.4,.5,1)}
-.k.r{--kb:var(--r);--kl:var(--rl);--ks:var(--rs)}.k.y{--kb:var(--y);--kl:var(--yl);--ks:var(--ys)}.k.g{--kb:var(--g);--kl:var(--gl);--ks:var(--gs)}.k.b{--kb:var(--b);--kl:var(--bl);--ks:var(--bs)}
+.k.r{--kb:var(--r);--kl:var(--rl);--ks:var(--rs);--shape:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><circle cx='10' cy='10' r='7' fill='white' fill-opacity='.6'/></svg>")}.k.y{--kb:var(--y);--kl:var(--yl);--ks:var(--ys);--shape:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path d='M10 2.5 L18 17 H2 Z' fill='white' fill-opacity='.6'/></svg>")}.k.g{--kb:var(--g);--kl:var(--gl);--ks:var(--gs);--shape:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><rect x='3.5' y='3.5' width='13' height='13' rx='2' fill='white' fill-opacity='.6'/></svg>")}.k.b{--kb:var(--b);--kl:var(--bl);--ks:var(--bs);--shape:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path d='M10 1.5 L18.5 10 L10 18.5 L1.5 10 Z' fill='white' fill-opacity='.6'/></svg>")}
 .k.J{background:conic-gradient(from 45deg,var(--r) 0 25%,var(--y) 0 50%,var(--g) 0 75%,var(--b) 0);box-shadow:inset 0 -0.42em 0 rgba(0,0,0,.18),inset 0 0.14em 0 rgba(255,255,255,.4),0 0.25em 0.4em -0.1em rgba(90,40,30,.35)}
 .k.J::after{content:"";position:absolute;inset:30% 30% 36%;border-radius:50%;background:#fff;box-shadow:0 .08em .15em rgba(0,0,0,.2)}
 .k.X{--kb:var(--x);--kl:var(--x);--ks:var(--xs)}
@@ -143,6 +143,24 @@ button.act.ghost{background:var(--seg);color:var(--ink);box-shadow:none}
 .tile{position:relative;width:30px;height:30px;border-radius:8px;background:var(--tile);box-shadow:inset 0 0 0 1px var(--tileb)}
 .tile.t-P{background:transparent;box-shadow:none}
 .tile::before,.tile::after{font-size:6px}
+
+.seed{position:absolute;inset:30%;border-radius:28%;background:var(--sc);opacity:.5;box-shadow:inset 0 -0.2em 0 rgba(0,0,0,.15);font-size:clamp(7px,1.5vw,13px);animation:seedin .3s ease-out}
+.seed::after{content:"";position:absolute;inset:-35%;border-radius:36%;border:2px dashed var(--sc);opacity:.7}
+@keyframes seedin{from{transform:scale(.3);opacity:0}}
+.k.nudge{transform:translate(var(--nx),var(--ny))!important;transition:transform .12s ease-out}
+.k.wig{animation:wig 1.4s ease-in-out}
+@keyframes wig{0%,100%{transform:none}20%,60%{transform:translate(var(--nx),var(--ny)) scale(1.05)}40%,80%{transform:none}}
+.hud{display:none}
+#undo:disabled{opacity:.4;cursor:default}
+button.act.icon{width:44px;padding:0;display:inline-grid;place-items:center}
+@media(max-width:760px){
+ .hud{display:flex;grid-column:1/-1;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px;padding:8px 12px;border-radius:16px;background:var(--card);border:1px solid var(--cardb);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+ .hud .num{font:900 26px/1 var(--rounded);font-variant-numeric:tabular-nums}
+ .hud .lab{font-size:12px;display:block;margin-bottom:2px}
+ .hud .next{margin:0;gap:8px}.hud .ico{width:30px;height:30px}.hud .ico.sm{width:22px;height:22px}
+ .hud .hb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mute);white-space:nowrap}.hud .hb .ico.xs{width:22px;height:22px}
+ .dup{display:none!important}
+}
 @media(max-width:760px){.game{grid-template-columns:minmax(0,1fr)}.boardbox{max-width:none;margin-bottom:10px}aside{grid-template-columns:1fr 1fr;gap:12px}.rules,.pts,.tempo,#goalcard,#hintcard,.wide{grid-column:1/-1}.big{font-size:44px}h1{font-size:34px}#board{padding:6px;gap:3px}}
 @media(prefers-reduced-motion:reduce){.k,.k.pop,.k.burn,.k.petrify,.k.flash,.float,.c::before{animation:none!important;transition:none}}
 </style>
@@ -160,8 +178,10 @@ button.act.ghost{background:var(--seg);color:var(--ink);box-shadow:none}
  <button class="act" id="relevel" data-show="l">Заново</button>
  <span class="lab" id="daylab" data-show="d"></span>
  <button class="act" id="reday" data-show="d">Заново</button>
+  <button class="act ghost icon" id="undo" disabled aria-label="Отменить ход" title="Отменить ход (один раз за партию)"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 7 4 12l5 5M4.5 12H14a6 6 0 0 1 0 12h-2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -3)"/></svg></button>
 </div>
 <div class="game">
+ <div class="hud" id="hud"><div><span class="lab" id="hlab">Очки</span><span class="num" id="hscore">0</span></div><div class="next" id="hnext"></div><div class="hb" id="hbonus"></div></div>
  <div class="boardbox">
   <div id="board" role="grid" aria-label="Игровое поле"></div>
   <div class="lvpick" id="lvpick" hidden></div>
@@ -174,12 +194,12 @@ button.act.ghost{background:var(--seg);color:var(--ink);box-shadow:none}
    <div class="bar"><i id="goalbar"></i></div>
    <div class="row lab" style="margin-top:8px"><span id="goalnum"></span><span id="movesleft"></span></div>
   </div>
-  <div class="score" data-show="e d">
+  <div class="score dup" data-show="e d">
    <div class="lab">Очки</div>
    <div class="big" id="score">0</div>
    <div class="row lab"><span id="bestlab">Рекорд</span><span id="best">0</span></div>
   </div>
-  <div class="score">
+  <div class="score dup">
    <div class="lab">Следующие цвета</div>
    <div class="next" id="next"></div>
   </div>

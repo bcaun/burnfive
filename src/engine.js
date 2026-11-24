@@ -51,7 +51,17 @@ function create(cfg,seed,layout){
    if(!collect(s,s.b.map((_,i)=>i)).n) break;
   }
  }
+ computeSeeds(s);
  return s;
+}
+// Где упадут следующие кубики: сохраняем прежние клетки, если они еще свободны
+function computeSeeds(s){
+ const k=s.over?0:spawnCount(s.cfg,s.turn+1);
+ const ok=i=>!s.b[i]&&!isPillar(s,i);
+ const keep=(s.seeds||[]).filter(ok).slice(0,k);
+ const f=spawnable(s).filter(i=>!keep.includes(i));
+ while(keep.length<k&&f.length)keep.push(f.splice(rint(s.gP,f.length),1)[0]);
+ s.seeds=keep;
 }
 function nextColor(s){
  const last=s.queue.length?s.queue[s.queue.length-1]:null;
@@ -159,7 +169,8 @@ function move(s,from,d,opt){
  if(!cleared){
   for(let j=0,c=spawnCount(s.cfg,s.turn);j<c;j++){
    const f=spawnable(s);if(!f.length)break;
-   const at=f[rint(s.gP,f.length)];s.b[at]=s.queue.shift();s.queue.push(nextColor(s));
+   const sd=s.seeds&&s.seeds[j];
+   const at=sd!==undefined&&!s.b[sd]&&!isPillar(s,sd)?sd:f[rint(s.gP,f.length)];s.b[at]=s.queue.shift();s.queue.push(nextColor(s));
    const cr=s.cfg.crack;
    if(cr&&cr.rate&&s.turn>=(cr.from||0)&&rnext(s.gX)<cr.rate){s.k[at]=cr.life;st.cr++}
    placed.push(at);
@@ -175,6 +186,7 @@ function move(s,from,d,opt){
  }
  if(!s.b.some(Boolean)){const f=spawnable(s);if(f.length){const at=f[rint(s.gP,f.length)];s.b[at]=s.queue.shift();s.queue.push(nextColor(s));ev.push({type:'spawn',cells:[at],snap:snap(s)})}}
  checkEnd(s);
+ computeSeeds(s);
  if(s.over)ev.push({type:'end',won:s.won,reason:s.reason,snap:snap(s)});
  return ev;
 }
@@ -258,9 +270,47 @@ function createDaily(date){
 }
 function createEndless(n,seed){return create(Object.assign({},ENDLESS[n]),seed,null)}
 
-function clone(s){const c=Object.assign({},s);c.T=s.T;c.b=s.b.slice();c.k=s.k.slice();c.queue=s.queue.slice();
+function clone(s){const c=Object.assign({},s);c.T=s.T;c.b=s.b.slice();c.k=s.k.slice();c.queue=s.queue.slice();c.seeds=(s.seeds||[]).slice();
  c.gC={s:s.gC.s};c.gP={s:s.gP.s};c.gB={s:s.gB.s};c.gX={s:s.gX.s};c.st=JSON.parse(JSON.stringify(s.st));return c}
 
-const BF={COLS,DIRS,ENDLESS,rng,rnext,hashStr,create,createEndless,createLevel,createDaily,move,canMove,plan,legalMoves,step,collect,runsAt,spawnCount,goalProgress,clone,free,portalPair,PAINT};
+// --- лучший ход: оценка заготовок линий с учетом кубиков, которые упадут на «семена» ---
+function evalBoard(s,b){
+ const n=s.n,L=s.cfg.min,W=[0,1,6,40,0,0,0,0,0,0,0];let v=0;
+ for(let r=0;r<n;r++)for(let c=0;c<n;c++)for(const [dr,dc] of [[0,1],[1,0]]){
+  if(r+dr*(L-1)>=n||c+dc*(L-1)>=n)continue;
+  let col=null,cnt=0,bad=false;
+  for(let x=0;x<L;x++){const i=(r+dr*x)*n+c+dc*x,q=b[i];
+   if(s.T[i]==='P'||q==='S'||q==='X'){bad=true;break}
+   if(!q)continue;if(q==='J'){cnt++;continue}
+   if(col&&q!==col){bad=true;break}col=q;cnt++}
+  if(!bad)v+=W[cnt];
+ }
+ for(let i=0;i<b.length;i++){if(b[i]==='S')v-=8;if(s.k[i]>0)v-=4-s.k[i]*0.2}
+ return v;
+}
+function bestMove(s,noise){
+ const ms=legalMoves(s);let best=null,bv=-1e9;const g=s.cfg.goal;
+ for(const [f,d] of ms){
+  const c=clone(s);c.cfg=Object.assign({},s.cfg,{bonusEvery:0,tempo:{every:1e9,count:0},moves:0,goal:null});
+  c.seeds=[];move(c,f,d);
+  const burned=c.score>s.score||c.st.Xb>s.st.Xb;
+  // если ничего не сгорело, на «семена» упадут кубики из очереди
+  const b=c.b.slice();
+  if(!burned)(s.seeds||[]).forEach((i,j)=>{if(!b[i])b[i]=s.queue[j]});
+  let v=evalBoard(c,b)+(c.score-s.score)*50;
+  if(g){
+   if(g.type==='lines'&&g.color)v+=(c.st.col[g.color]-s.st.col[g.color])*400;
+   if(g.type==='double')v+=(c.st.dbl-s.st.dbl)*600;
+   if(g.type==='stones'){const before=s.b.filter(x=>x==='S').length,after=c.b.filter(x=>x==='S').length;v+=(before-after)**2*150;if(c.st.Xb>s.st.Xb&&before===after)v-=500;
+    const xi=c.b.indexOf('X');if(xi>=0){let dm=99;c.b.forEach((x,i)=>{if(x==='S'){const dd=Math.abs(i%c.n-xi%c.n)+Math.abs(Math.floor(i/c.n)-Math.floor(xi/c.n));dm=Math.min(dm,dd)}});v-=dm*6}}
+  }
+  if(s.b[f]==='X'&&!(g&&g.type==='stones')&&c.score===s.score)v-=30;
+  if(noise)v+=Math.random()*noise;
+  if(v>bv){bv=v;best=[f,d]}
+ }
+ return best;
+}
+
+const BF={COLS,DIRS,ENDLESS,rng,rnext,hashStr,create,createEndless,createLevel,createDaily,move,canMove,plan,legalMoves,step,collect,runsAt,spawnCount,goalProgress,clone,free,portalPair,PAINT,bestMove,evalBoard,computeSeeds};
 if(typeof module!=='undefined'&&module.exports)module.exports=BF;else root.BF=BF;
 })(typeof globalThis!=='undefined'?globalThis:this);
