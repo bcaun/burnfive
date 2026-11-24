@@ -16,11 +16,37 @@ let mode=ls.get('burnfive-mode','e'); if(!['e','l','d'].includes(mode)) mode='e'
 let size=ls.get('burnfive-size',8); if(![8,10].includes(size)) size=8;
 let lvIdx=null, s=null, sel=null, busy=false, G=null, view=null, dayDate=today();
 
+// ---------- графика кубиков и клеток ----------
+const SYM={r:'<circle cx="10" cy="10" r="6.6"/>',y:'<path d="M10 2.9 17.6 16.4H2.4Z"/>',g:'<rect x="3.7" y="3.7" width="12.6" height="12.6" rx="1.6"/>',b:'<path d="M10 2 18 10 10 18 2 10Z"/>',
+ X:'<path d="M10 0.8 12 7 18.6 5 14.2 10 18.6 15 12 13 10 19.2 8 13 1.4 15 5.8 10 1.4 5 8 7Z"/>'};
+const sym=c=>`<svg class="sym" viewBox="0 0 20 20" aria-hidden="true">${SYM[c]}</svg>`;
+const CRK='M9 5 16 14 13 20 21 26 19 34M16 14 25 11 30 4M21 26 30 24',CRKS=CRK+'M4 21 11 24 9 31M27 15 35 19 33 26';
+const crk=(d,h)=>`<svg class="crk${h?' h':''}" viewBox="0 0 40 40" preserveAspectRatio="none" aria-hidden="true"><path d="${d}"/></svg>`;
+function kInner(col,kk,life){
+ if(col==='J')return '<i class="jc"></i>';
+ if(col==='S')return crk(CRKS,true);
+ let h=sym(col);
+ if(kk>0){
+  if(kk<=3)h+=crk(CRK,true)+`<span class="hotb">${'<i></i>'.repeat(kk)}</span>`;
+  else{const f=Math.min(1,kk/(life||kk));h+=crk(CRK)+`<svg class="ring" viewBox="0 0 40 40" preserveAspectRatio="none" aria-hidden="true"><circle class="tr" cx="20" cy="15.5" r="13"/><circle class="ar" cx="20" cy="15.5" r="13" stroke-dasharray="${(81.7*f).toFixed(1)} 100" transform="rotate(-90 20 15.5)"/></svg>`}
+ }
+ return h;
+}
+const kHTML=(col,cls='')=>`<span class="k ${col} ${cls}">${kInner(col,0)}</span>`;
+function terrainInner(t){
+ if(t==='P')return '<span class="col"></span>';
+ if(t==='O1'||t==='O2')return `<svg class="arch" viewBox="0 0 40 40" aria-hidden="true"><path class="ap" d="M9 36V18a11 11 0 0 1 22 0v18Z"/>${t==='O1'?'<circle class="ad" cx="20" cy="25" r="2.6"/>':'<circle class="ad" cx="15.5" cy="25" r="2.6"/><circle class="ad" cx="24.5" cy="25" r="2.6"/>'}</svg>`;
+ const pc={R:'r',Y:'y',G:'g',V:'b'}[t];
+ if(pc)return `<svg class="paint ${pc}" viewBox="0 0 40 40" aria-hidden="true"><path class="pb" d="M20 4c6 0 9 4 13 6s4 8 2 12 0 9-5 11-9 3-14 1-9-2-10-7 0-9 1-13 7-10 13-10Z"/><g class="ps" transform="translate(13 13) scale(.7)">${SYM[pc]}</g></svg>`;
+ return '';
+}
+const crackLife=()=>(s.cfg.crack&&s.cfg.crack.life)||(mode==='l'&&lvIdx!==null&&LEVELS[lvIdx].crack&&LEVELS[lvIdx].crack.life)||8;
+
 // ---------- построение поля ----------
 const cells=[];
 function build(){
  const n=s.n;boardEl.innerHTML='';cells.length=0;boardEl.style.setProperty('--n',n);
- for(let i=0;i<n*n;i++){const c=document.createElement('button');c.className='c'+(s.T[i]?' t-'+s.T[i]:'');c.dataset.i=i;c.setAttribute('role','gridcell');cells.push(c);boardEl.appendChild(c)}
+ for(let i=0;i<n*n;i++){const c=document.createElement('button');c.className='c'+(s.T[i]?' t-'+s.T[i]:'');c.dataset.i=i;c.setAttribute('role','gridcell');if(s.T[i])c.innerHTML=terrainInner(s.T[i]);cells.push(c);boardEl.appendChild(c)}
  boardEl.setAttribute('aria-label',`Игровое поле ${n} на ${n}`);
  view={b:s.b.slice(),k:s.k.slice()};
 }
@@ -32,11 +58,12 @@ function drawCells(v,pop=new Set(),cls=''){
   c.classList.toggle('s',i===sel);c.classList.toggle('t',tg.has(i));
   const col=v.b[i];let k=c.querySelector('.k');
   const sj=!busy&&!s.over&&!col?(s.seeds||[]).indexOf(i):-1;let sd=c.querySelector('.seed');
-  if(sj>=0){const sc=s.queue[sj];if(!sd||sd.dataset.c!==sc){if(sd)sd.remove();sd=document.createElement('span');sd.className='seed';sd.dataset.c=sc;sd.style.setProperty('--sc',`var(--${sc})`);c.appendChild(sd)}}
+  if(sj>=0){const sc=s.queue[sj];if(!sd||sd.dataset.c!==sc){if(sd)sd.remove();sd=document.createElement('span');sd.className='seed '+sc;sd.dataset.c=sc;sd.innerHTML=sym(sc);c.appendChild(sd)}}
   else if(sd)sd.remove();
   if(!col){if(k)k.remove();c.setAttribute('aria-label',(s.T[i]?TNAME[s.T[i]]||'портал':'пусто')+(sj>=0?`, сюда упадет ${NAMES[s.queue[sj]]}`:''));return}
-  if(!k||k.dataset.c!==col){if(k)k.remove();k=document.createElement('span');k.className='k '+col;k.dataset.c=col;c.appendChild(k)}
+  if(!k||k.dataset.c!==col){if(k)k.remove();k=document.createElement('span');k.className='k '+col;k.dataset.c=col;k.dataset.kk='-1';c.appendChild(k)}
   const cr=v.k[i]>0;k.classList.toggle('cr',cr);k.classList.toggle('hot',cr&&v.k[i]<=3);
+  if(k.dataset.kk!==String(v.k[i])){k.dataset.kk=v.k[i];k.innerHTML=kInner(col,v.k[i],crackLife())}
   if(cr)k.dataset.n=v.k[i];else delete k.dataset.n;
   if(pop.has(i)&&cls){k.classList.remove(cls);void k.offsetWidth;k.classList.add(cls)}
   c.setAttribute('aria-label',NAMES[col]+(cr?`, станет камнем через ${v.k[i]}`:''));
@@ -46,7 +73,7 @@ function drawCells(v,pop=new Set(),cls=''){
 // ---------- боковая панель ----------
 const word=n=>n===0?'ничего':n===1?'1 кубик':'2 кубика';
 const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c};
-const icon=(t,cls='')=>t==='T'?`<span class="trip">${'<span class="ico"><span class="k g"></span></span>'.repeat(3)}</span>`:`<span class="ico ${cls}"><span class="k ${t}"></span></span>`;
+const icon=(t,cls='')=>t==='T'?`<span class="trip">${'<span class="ico"><span class="k g"></span></span>'.repeat(3)}</span>`:`<span class="ico ${cls}">${kHTML(t)}</span>`;
 function phaseText(t){
  const tp=s.cfg.tempo;
  if(tp.every)return tp.every===1?'Кубик каждый ход':`Кубик раз в ${tp.every} ${plural(tp.every,'ход','хода','ходов')}`;
@@ -69,11 +96,12 @@ function panel(){
  $('incoming').textContent=word(BF.spawnCount(s.cfg,s.turn+1));
  const cap=s.T.filter(t=>t!=='P').length,fillN=s.b.filter(Boolean).length,heat=Math.max(0,Math.min(1,(fillN/cap-0.7)/0.25));
  document.querySelector('.boardbox').style.setProperty('--side',heat?`color-mix(in srgb,#e0483a ${Math.round(heat*100)}%,var(--slabside))`:'');
- $('next').innerHTML=s.queue.slice(0,2).map((c,j)=>`<span class="ico ${j?'sm':''}" role="img" aria-label="${NAMES[c]}"><span class="k ${c}"></span></span>`).join('');
+ $('next').innerHTML=s.queue.slice(0,2).map((c,j)=>`<span class="ico ${j?'sm':''}" role="img" aria-label="${NAMES[c]}">${kHTML(c)}</span>`).join('');
  $('hnext').innerHTML=$('next').innerHTML;
  const be=s.cfg.bonusEvery;$('bonusrow').hidden=!be;
  if(be){const left=be-s.turn%be;$('hbonus').innerHTML=icon(s.nextBonus,'xs')+`<span>через ${left}</span>`}else $('hbonus').innerHTML='';
- if(mode==='l'&&lvIdx!==null){const gp=BF.goalProgress(s),left=LEVELS[lvIdx].moves-s.turn;$('hlab').textContent=`Цель ${gp.have}/${gp.need}`;$('hscore').textContent=left;$('hlab').textContent+=', ходов';}
+ if(mode==='l'&&lvIdx!==null){const gp=BF.goalProgress(s),left=LEVELS[lvIdx].moves-s.turn;$('hlab').textContent='Цель';$('hscore').textContent=`${gp.have}/${gp.need}`;
+  if(!be)$('hbonus').innerHTML=`<span>Осталось ${left} ${plural(left,'ход','хода','ходов')}</span>`;}
  else{$('hlab').textContent='Очки';$('hscore').textContent=s.score}
  $('undo').disabled=!(G&&G.prev&&!G.undone&&!s.over&&!busy);
  if(be){const left=be-s.turn%be;$('bicon').innerHTML=icon(s.nextBonus,'xs');$('btxt').textContent=`Бонус ${left===1?'после этого хода':'через '+left+' '+plural(left,'ход','хода','ходов')}: ${BNAME[s.nextBonus]}`}
@@ -82,7 +110,7 @@ function panel(){
   $('lvname').textContent=`Уровень ${lv.id}. ${lv.name}`;$('goaltxt').textContent=goalText(lv.goal);
   $('goalbar').style.width=(gp.need?gp.have*100/gp.need:0)+'%';$('goalnum').textContent=`${gp.have} из ${gp.need}`;
   const left=lv.moves-s.turn;$('movesleft').textContent=`Осталось ${left} ${plural(left,'ход','хода','ходов')}`;
-  $('hintcard').textContent=lv.hint;
+  $('hintcard').innerHTML=`<div class="lab">Подсказка</div><div class="hint">${lv.hint}</div>`;
  }
  if(mode==='e'){$('bestlab').textContent='Рекорд';$('best').textContent=Math.max(ls.get(bestKey(),0),s.score)}
  if(mode==='d'){$('bestlab').textContent='Лучший сегодня';$('best').textContent=Math.max(ls.get('burnfive-day-'+dayDate,0),s.score)}
@@ -109,7 +137,7 @@ function rules(){
  if(has('O'))tl.push(['t-O1','<b>Портал.</b> Кубик, вставший на портал, переносится на парный портал того же цвета, если тот свободен.']);
  const pc=s.T.find(x=>/^[RYGV]$/.test(x));
  if(pc)tl.push(['t-'+pc,'<b>Краска.</b> Перекрашивает кубик, который на нее встал.']);
- $('terrainlegend').innerHTML=tl.map(([c,t])=>`<div class="tiles"><span class="tile c ${c}"></span><span>${t}</span></div>`).join('');
+ $('terrainlegend').innerHTML=tl.map(([c,t])=>`<div class="tiles"><span class="tile c ${c}">${terrainInner(c.slice(2))}</span><span>${t}</span></div>`).join('');
  const bt=c.bonusEvery?c.bonusTypes:[];
  [...$('bonuslegend').children].forEach((li,j)=>li.hidden=!bt.includes(['J','T','X'][j])&&!(j===2&&s.b.includes('X')));
  $('pts').innerHTML=Object.entries(c.pts).map(([k,v])=>`<tr><td>${k} в ряд</td><td>${v}</td></tr>`).join('')+'<tr><td>Две линии одним ходом</td><td>×2</td></tr>';
@@ -118,7 +146,7 @@ function rules(){
 // ---------- режимы ----------
 function setMode(m){
  if(G&&s&&!s.over)report('quit');
- mode=m;ls.set('burnfive-mode',m);$('side').hidden=false;$('lvpick').hidden=true;
+ mode=m;ls.set('burnfive-mode',m);$('side').classList.remove('picking');$('undo').hidden=false;$('lvpick').hidden=true;
  document.querySelectorAll('.mode button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===m)));
  document.querySelectorAll('[data-show]').forEach(el=>el.hidden=!el.dataset.show.split(' ').includes(m));
  $('over').classList.remove('on');
@@ -140,13 +168,20 @@ function startDaily(){
 function showLevels(){
  lvIdx=null;
  const prog=ls.get('burnfive-levels',{});
- $('lvpick').innerHTML=LEVELS.map((lv,j)=>{const open=j===0||prog[LEVELS[j-1].id];return `<button class="lv${prog[lv.id]?' done':''}" data-j="${j}" ${open?'':'disabled'} aria-label="Уровень ${lv.id}: ${lv.name}"><b>${lv.id}</b><span>${lv.name}</span></button>`}).join('');
- $('lvpick').hidden=false;$('side').hidden=true;
+ const CHECK='<svg class="badge" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>',LOCK='<svg class="badge" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+ const cur=LEVELS.findIndex((lv,j)=>!prog[lv.id]&&(j===0||prog[LEVELS[j-1].id]));
+ $('lvpick').innerHTML=LEVELS.map((lv,j)=>{const open=j===0||prog[LEVELS[j-1].id];return `<button class="lv${prog[lv.id]?' done':''}${j===cur?' cur':''}" data-j="${j}" ${open?'':'disabled'} aria-label="Уровень ${lv.id}: ${lv.name}${prog[lv.id]?', пройден':open?'':', закрыт'}"><b>${lv.id}</b><span>${lv.name}</span>${prog[lv.id]?CHECK:open?'':LOCK}</button>`}).join('');
+ $('lvpick').hidden=false;$('side').classList.add('picking');$('undo').hidden=true;
+ const done=LEVELS.filter(lv=>prog[lv.id]).length;
+ $('hlab').textContent='Пройдено';$('hscore').textContent=`${done} из ${LEVELS.length}`;$('hnext').innerHTML='';
+ $('hbonus').innerHTML=`<span class="bar" style="width:110px"><i style="width:${done*100/LEVELS.length}%"></i></span>`;
+ const nx=LEVELS[cur>=0?cur:LEVELS.length-1];
+ $('hintcard').hidden=false;$('hintcard').innerHTML=`<div class="lab">${cur>=0?'Следующий уровень':'Все уровни пройдены'}</div><div class="goal">${nx.id}. ${nx.name}</div><div class="hint">${nx.hint}</div>`;
  s=BF.createLevel({terrain:Array(8).fill('........'),moves:1,goal:{type:'lines',count:1}},1);build();drawCells(view);
- $('goalcard').hidden=true;$('hintcard').hidden=true;$('relevel').hidden=true;$('tolevels').hidden=true;
+ $('goalcard').hidden=true;$('relevel').hidden=true;$('tolevels').hidden=true;
 }
 function startLevel(j){
- lvIdx=j;$('lvpick').hidden=true;$('side').hidden=false;
+ lvIdx=j;$('lvpick').hidden=true;$('side').classList.remove('picking');$('undo').hidden=false;
  ['goalcard','hintcard','relevel','tolevels'].forEach(id=>$(id).hidden=false);
  begin(BF.createLevel(LEVELS[j],rseed()));
 }
@@ -160,9 +195,10 @@ function begin(state){
 
 // ---------- ход и анимация ----------
 const wait=ms=>new Promise(r=>setTimeout(r,matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms));
-function floatText(list,txt){
+const COLORS=['r','y','g','b'];
+function floatText(list,txt,small){
  const n=s.n;let x=0,y=0;list.forEach(i=>{x+=i%n+.5;y+=Math.floor(i/n)+.5});x/=list.length;y/=list.length;
- const f=document.createElement('div');f.className='float';f.textContent=txt;f.style.left=Math.min(88,Math.max(12,x*100/n))+'%';f.style.top=y*100/n+'%';
+ const f=document.createElement('div');f.className='float'+(small?' s':'');f.textContent=txt;f.style.left=Math.min(88,Math.max(12,x*100/n))+'%';f.style.top=y*100/n+'%';
  boardEl.parentNode.appendChild(f);setTimeout(()=>f.remove(),1050);
 }
 async function doMove(from,d){
@@ -173,12 +209,13 @@ async function doMove(from,d){
  for(const e of ev){
   if(e.type==='move'){sel=e.player;drawCells(e.snap,new Set(e.painted),'flash');if(e.slid||e.portal)await wait(120);else await wait(60)}
   else if(e.type==='burn'||e.type==='boom'){
-   e.cells.forEach(i=>{const k=cells[i].querySelector('.k');if(k)k.classList.add('burn')});
-   floatText(e.cells,e.type==='boom'?'Бум':'+'+e.pts+(e.mult>1?' ×2':''));
+   e.cells.forEach(i=>{const k=cells[i].querySelector('.k');if(!k)return;k.classList.add('burn');const col=k.dataset.c;
+    if(!matchMedia('(prefers-reduced-motion: reduce)').matches)for(let q=0;q<4;q++){const sd=document.createElement('i');sd.className='sand '+(COLORS.includes(col)?col:'y');sd.style.left=(10+Math.random()*60)+'%';sd.style.top=(10+Math.random()*50)+'%';sd.style.setProperty('--sx',((Math.random()-.5)*160)+'%');sd.style.setProperty('--sy',(-40-Math.random()*120)+'%');cells[i].appendChild(sd);setTimeout(()=>sd.remove(),500)}});
+   floatText(e.cells,e.type==='boom'?'Бум':'+'+e.pts+(e.mult>1?' ×2':''),e.type==='boom');
    await wait(270);if(sel!==null&&!e.snap.b[sel])sel=null;drawCells(e.snap);
   }
   else if(e.type==='stone'){drawCells(e.snap,new Set(e.cells),'petrify');await wait(160)}
-  else if(e.type==='spawn'){drawCells(e.snap,new Set(e.cells),'pop');if(e.bonus)floatText(e.cells,e.bonus==='T'?'Тройка':BNAME[e.bonus][0].toUpperCase()+BNAME[e.bonus].slice(1));await wait(230)}
+  else if(e.type==='spawn'){drawCells(e.snap,new Set(e.cells),'pop');if(e.bonus)floatText(e.cells,e.bonus==='T'?'Тройка':BNAME[e.bonus][0].toUpperCase()+BNAME[e.bonus].slice(1),true);await wait(230)}
  }
  if(sel!==null&&!s.b[sel])sel=null;
  busy=false;
@@ -188,11 +225,12 @@ async function doMove(from,d){
 function finish(){
  sel=null;drawCells({b:s.b.slice(),k:s.k.slice()});
  const why={full:'Поле заполнено',stuck:'Ходов больше нет',moves:'Ходы закончились',goal:''}[s.reason];
- $('over2').hidden=true;
+ $('over2').hidden=true;$('overmark').hidden=true;
  if(mode==='l'){
   const lv=LEVELS[lvIdx];
   if(s.won){
    const prog=ls.get('burnfive-levels',{});const left=lv.moves-s.turn;prog[lv.id]=Math.max(prog[lv.id]||0,left+1);ls.set('burnfive-levels',prog);
+   $('overmark').innerHTML=kHTML('b');$('overmark').hidden=false;
    $('overh').textContent='Уровень пройден';$('overtxt').textContent=`Осталось ходов: ${left}. Очки: ${s.score}.`;
    const last=lvIdx===LEVELS.length-1;
    $('over1').textContent=last?'Все уровни':'Следующий';$('over1').onclick=()=>last?showLevelsFromOver():startLevel(lvIdx+1);
@@ -316,6 +354,7 @@ $('new').addEventListener('click',()=>{if(busy)return;if(s&&!s.over)report('quit
 $('reday').addEventListener('click',()=>{if(busy)return;if(s&&!s.over)report('quit');startDaily()});
 $('relevel').addEventListener('click',()=>{if(busy||lvIdx===null)return;if(!s.over)report('quit');startLevel(lvIdx)});
 $('tolevels').addEventListener('click',()=>{if(busy)return;if(s&&!s.over)report('quit');$('over').classList.remove('on');showLevels()});
+document.querySelectorAll('#bonuslegend .k').forEach(k=>{const c=['J','X','r','y','g','b'].find(x=>k.classList.contains(x));if(c)k.innerHTML=kInner(c,0)});
 window.BFUI={get s(){return s},doMove,setMode,startLevel,undo};
 setMode(mode);
 }
