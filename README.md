@@ -1,16 +1,21 @@
 # Burn Five
 
-Головоломка на поле 8×8 (по умолчанию) или 10×10: двигайте кубики на одну клетку, собирайте линии из 5 и больше кубиков одного цвета.
+Головоломка: двигайте кубики на одну клетку (или толкайте ряд), собирайте линии одного цвета.
 
 - Игра: https://burnfive.daagamma.com
-- Статистика партий: https://burnfive.daagamma.com/stats?key=ADMIN_KEY
+- Статистика: https://burnfive.daagamma.com/stats?key=ADMIN_KEY
 
-## Устройство
+## Режимы
+- **Игра**: бесконечная партия, поле 8×8 (линии от 4) или 10×10 (линии от 5), толчки и трещины.
+- **Уровни**: 12 уровней с целями и лимитом ходов; колонны, лед, порталы, краска, камни.
+- **День**: одинаковое поле и очередь кубиков для всех на дату (UTC), таблица лучших.
 
-- `src/index.html`: сама игра, одна страница.
-- `src/worker.js`: Cloudflare Worker. Отдает игру, принимает итоги партий (`POST /api/game`) в KV, показывает `/stats` и `/stats.csv`.
-- `wrangler.toml`: имя воркера, домен burnfive.daagamma.com, хранилище KV `GAMES`.
+## Файлы
+- `src/engine.js`: правила игры без интерфейса (работает и в node).
+- `src/levels.js`: уровни.
+- `src/app.js`: интерфейс.
+- `src/index.html`: страница и стили.
+- `src/worker.js`: Cloudflare Worker: отдает игру, принимает итоги (`POST /api/game`), таблицу дня (`/api/daily`), статистику `/stats`.
+- `tools/bot.js`, `tools/sim.js`: бот и симуляции баланса (`node tools/sim.js endless8 60`, `node tools/sim.js levels 40`).
 
-Секрет `ADMIN_KEY` задается в Cloudflare: Workers → burnfive → Settings → Variables and Secrets.
-
-Деплой идет автоматически из ветки `main` через Cloudflare Workers Builds.
+Секрет `ADMIN_KEY` задается в Cloudflare. Деплой автоматически из `main`.
