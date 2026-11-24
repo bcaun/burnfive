@@ -152,8 +152,9 @@ const TOUCH=matchMedia('(pointer: coarse)').matches;
 const bestKey=()=>N===10?'kubiki-best':'burnfive-best-'+N;
 function loadBest(){best=0;try{best=+localStorage.getItem(bestKey())||0}catch(e){}}
 const rnd=()=>COLS[Math.floor(Math.random()*4)];
-// Следующий цвет в очереди никогда не совпадает с предыдущим
-const nextColor=()=>{const last=queue&&queue.length?queue[queue.length-1]:null;let c;do{c=rnd()}while(c===last);return c};
+// Повтор цвета подряд редкий: примерно 1 раз из 12 (при чистом случае было 1 из 4)
+const REPEAT=0.08;
+const nextColor=()=>{const last=queue&&queue.length?queue[queue.length-1]:null;if(last&&Math.random()<REPEAT)return last;let c;do{c=rnd()}while(c===last);return c};
 const rndBonus=()=>BONUS[Math.floor(Math.random()*3)];
 const spawnCount=t=>t<=C.p1?(t%2===0?1:0):t<=C.p2?1:C.p3===2?2:(t%3===0?2:1);
 const p3Text=()=>C.p3===2?'2 кубика каждый ход':'каждый третий ход 2 кубика';
