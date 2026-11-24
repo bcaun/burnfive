@@ -24,10 +24,15 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .wrap{position:relative;z-index:1}
 .wrap{max-width:1100px;margin:0 auto;padding:clamp(20px,3vw,40px) max(4vw,14px)}
 header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.hd{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.size{display:inline-flex;border:2px solid var(--hi)}
+.size button{appearance:none;font:inherit;font-weight:700;min-height:40px;min-width:64px;padding:0 12px;border:0;background:transparent;color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums}
+.size button[aria-pressed=true]{background:var(--hi);color:var(--bg)}
+.size button:focus-visible{outline:2px solid var(--hi);outline-offset:3px}
 h1{font-size:32px;line-height:1.05;margin:0;font-weight:800;font-stretch:112%}
 .game{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:clamp(20px,3vw,44px);align-items:start}
 .boardbox{position:relative;width:100%;max-width:620px;aspect-ratio:1;box-shadow:0 1px 0 rgba(255,255,255,.5),0 18px 40px -18px rgba(70,40,15,.35)}
-#board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(10,minmax(0,1fr));border-top:2px solid var(--hi);border-left:1px solid var(--rule);touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(var(--n,8),minmax(0,1fr));grid-template-rows:repeat(var(--n,8),minmax(0,1fr));border-top:2px solid var(--hi);border-left:1px solid var(--rule);touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .c{appearance:none;border:0;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--cell);padding:0;margin:0;position:relative;cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
 .c:focus-visible{box-shadow:inset 0 0 0 2px var(--hi)}
 .c.t::after{content:"";position:absolute;inset:38%;border-radius:50%;background:var(--hi);opacity:.18}
@@ -81,7 +86,10 @@ td{padding:3px 0;border-bottom:1px solid var(--rule)}td:last-child{text-align:ri
 <div class="wrap">
 <header>
  <h1>Burn Five</h1>
- <button class="act" id="new">Новая игра</button>
+ <div class="hd">
+  <div class="size" role="group" aria-label="Размер поля"><button data-n="8">8×8</button><button data-n="10">10×10</button></div>
+  <button class="act" id="new">Новая игра</button>
+ </div>
 </header>
 <div class="game">
  <div class="boardbox">
@@ -99,7 +107,7 @@ td{padding:3px 0;border-bottom:1px solid var(--rule)}td:last-child{text-align:ri
    <div class="next" id="next"></div>
   </div>
   <div class="tempo">
-   <div class="row"><span>Ход <b id="turn">0</b></span><span id="fill">0/100</span></div>
+   <div class="row"><span>Ход <b id="turn">0</b></span><span id="fill"></span></div>
    <div class="lab" id="phase"></div>
    <div class="row lab" style="margin-top:8px"><span>После этого хода</span><span id="incoming"></span></div>
    <div class="row lab"><span>Линий сожжено</span><span id="lines">0</span></div>
@@ -112,9 +120,9 @@ td{padding:3px 0;border-bottom:1px solid var(--rule)}td:last-child{text-align:ri
     <li>5 и больше кубиков одного цвета в ряд по горизонтали или вертикали сгорают.</li>
     <li>Две линии одним ходом: очки удваиваются.</li>
     <li>Если на ходу что-то сгорело, новый кубик не появляется.</li>
-    <li>Ходы 1-100: кубик раз в 2 хода. 101-250: кубик каждый ход. С 251-го: каждый третий ход 2 кубика.</li>
+    <li id="rtempo"></li>
     <li>Кубик, упавший в линию, тоже ее сжигает. Очки ваши.</li>
-    <li>Каждые 20 ходов на поле появляется бонус.</li>
+    <li id="rbonus"></li>
    </ul>
    <ul class="legend">
     <li><span class="ico xs"><span class="k J"></span></span><span><b>Джокер.</b> Подходит к любому цвету и сгорает вместе с линией.</span></li>
@@ -132,23 +140,36 @@ td{padding:3px 0;border-bottom:1px solid var(--rule)}td:last-child{text-align:ri
 <script>
 {
 const NAMES={r:'красный',y:'желтый',g:'зеленый',b:'синий',J:'джокер',X:'уничтожитель'};
-const N=10, COLS=['r','y','g','b'], BONUS=['J','T','X'], PTS={5:10,6:20,7:50,8:100,9:200,10:500};
+const CFG={8:{start:19,p1:64,p2:160,bonus:13},10:{start:30,p1:100,p2:250,bonus:20}};
+let N=8, C=CFG[8];
+try{const z=+localStorage.getItem('burnfive-size');if(CFG[z]){N=z;C=CFG[z]}}catch(e){}
+const COLS=['r','y','g','b'], BONUS=['J','T','X'], PTS={5:10,6:20,7:50,8:100,9:200,10:500};
 const BNAME={J:'джокер',T:'тройка',X:'уничтожитель'};
 const boardEl=document.getElementById('board'), $=id=>document.getElementById(id);
 let b, turn, score, queue, sel, over, busy, nlines, nextBonus, best=0, G=null;
 const SID=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const TOUCH=matchMedia('(pointer: coarse)').matches;
-try{best=+localStorage.getItem('kubiki-best')||0}catch(e){}
+const bestKey=()=>N===10?'kubiki-best':'burnfive-best-'+N;
+function loadBest(){best=0;try{best=+localStorage.getItem(bestKey())||0}catch(e){}}
 const rnd=()=>COLS[Math.floor(Math.random()*4)];
 const rndBonus=()=>BONUS[Math.floor(Math.random()*3)];
-const spawnCount=t=>t<=100?(t%2===0?1:0):t<=250?1:(t%3===0?2:1);
-const phaseText=t=>t<=100?'Фаза 1: кубик раз в 2 хода':t<=250?'Фаза 2: кубик каждый ход':'Фаза 3: каждый третий ход 2 кубика';
+const spawnCount=t=>t<=C.p1?(t%2===0?1:0):t<=C.p2?1:(t%3===0?2:1);
+const phaseText=t=>t<=C.p1?'Фаза 1: кубик раз в 2 хода':t<=C.p2?'Фаза 2: кубик каждый ход':'Фаза 3: каждый третий ход 2 кубика';
 const word=n=>n===0?'ничего':n===1?'1 кубик':'2 кубика';
 const icon=(t,cls='')=>t==='T'?`<span class="trip">${'<span class="ico"><span class="k g"></span></span>'.repeat(3)}</span>`:`<span class="ico ${cls}"><span class="k ${t}"></span></span>`;
-$('pts').innerHTML=Object.entries(PTS).map(([k,v])=>`<tr><td>${k} в ряд</td><td>${v}</td></tr>`).join('')+'<tr><td>Две линии одним ходом</td><td>×2</td></tr>';
+function rulesText(){
+ $('rtempo').textContent=`Ходы 1-${C.p1}: кубик раз в 2 хода. ${C.p1+1}-${C.p2}: кубик каждый ход. С ${C.p2+1}-го: каждый третий ход 2 кубика.`;
+ $('rbonus').textContent=`Каждые ${C.bonus} ходов на поле появляется бонус.`;
+ $('pts').innerHTML=Object.entries(PTS).filter(([k])=>+k<=N).map(([k,v])=>`<tr><td>${k} в ряд</td><td>${v}</td></tr>`).join('')+'<tr><td>Две линии одним ходом</td><td>×2</td></tr>';
+ document.querySelectorAll('.size button').forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.n===N)));
+}
 
 const cells=[];
-for(let i=0;i<N*N;i++){const c=document.createElement('button');c.className='c';c.dataset.i=i;c.setAttribute('role','gridcell');cells.push(c);boardEl.appendChild(c)}
+function build(){
+ boardEl.innerHTML='';cells.length=0;boardEl.style.setProperty('--n',N);
+ for(let i=0;i<N*N;i++){const c=document.createElement('button');c.className='c';c.dataset.i=i;c.setAttribute('role','gridcell');cells.push(c);boardEl.appendChild(c)}
+ boardEl.setAttribute('aria-label',`Игровое поле ${N} на ${N}`);
+}
 
 const inb=(r,q)=>r>=0&&r<N&&q>=0&&q<N;
 function runsAt(i){
@@ -181,7 +202,7 @@ function report(r){
  if(!G||G.sent==='over'||turn===0) return;
  G.sent=r;
  const d={gid:G.gid,sid:SID,v:2,r,tu:turn,sc:score,ln:nlines,l:G.L,dbl:G.dbl,sp:G.sp,J:G.J,Jb:G.Jb,T:G.T,X:G.X,Xb:G.Xb,Xk:G.Xk,
-  fill:b.filter(Boolean).length,dur:Math.round((Date.now()-G.t0)/1000),dev:TOUCH?'t':'m',w:innerWidth,best};
+  fill:b.filter(Boolean).length,dur:Math.round((Date.now()-G.t0)/1000),dev:TOUCH?'t':'m',w:innerWidth,best,n:N};
  try{const body=JSON.stringify(d);if(!(navigator.sendBeacon&&navigator.sendBeacon('/api/game',new Blob([body],{type:'application/json'}))))fetch('/api/game',{method:'POST',body,keepalive:true,headers:{'content-type':'application/json'}}).catch(()=>{})}catch(e){}
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&!over)report('hidden')});
@@ -191,7 +212,7 @@ function newGame(){
  do{
   b=Array(N*N).fill(null);
   const free=[...Array(N*N).keys()];
-  for(let k=0;k<30;k++){const j=Math.floor(Math.random()*free.length);b[free.splice(j,1)[0]]=rnd()}
+  for(let k=0;k<C.start;k++){const j=Math.floor(Math.random()*free.length);b[free.splice(j,1)[0]]=rnd()}
  }while(collect(b.map((_,i)=>i)).n>0);
  turn=0;score=0;nlines=0;sel=null;over=false;busy=false;
  queue=[rnd(),rnd(),rnd()];nextBonus=rndBonus();
@@ -212,18 +233,18 @@ function render(popSet=new Set()){
  });
  $('score').textContent=score;$('best').textContent=Math.max(best,score);
  $('turn').textContent=turn;$('lines').textContent=nlines;
- $('fill').textContent=b.filter(Boolean).length+'/100';
+ $('fill').textContent=b.filter(Boolean).length+'/'+N*N;
  $('phase').textContent=phaseText(turn+1);
  $('incoming').textContent=word(spawnCount(turn+1));
  $('next').innerHTML=queue.slice(0,2).map((c,j)=>`<span class="ico ${j?'sm':''}" role="img" aria-label="${NAMES[c]}"><span class="k ${c}"></span></span>`).join('');
- const left=20-turn%20;
+ const left=C.bonus-turn%C.bonus;
  $('bicon').innerHTML=icon(nextBonus,'xs');
  $('btxt').textContent=`Бонус ${left===1?'после этого хода':'через '+left+' '+(left<5?'хода':'ходов')}: ${BNAME[nextBonus]}`;
 }
 const wait=ms=>new Promise(r=>setTimeout(r,matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms));
 function floatText(cellsSet,txt){
  let x=0,y=0;cellsSet.forEach(i=>{x+=i%N+.5;y+=Math.floor(i/N)+.5});x/=cellsSet.size;y/=cellsSet.size;
- const f=document.createElement('div');f.className='float';f.textContent=txt;f.style.left=Math.min(88,Math.max(12,x*10))+'%';f.style.top=y*10+'%';
+ const f=document.createElement('div');f.className='float';f.textContent=txt;f.style.left=Math.min(88,Math.max(12,x*100/N))+'%';f.style.top=y*100/N+'%';
  boardEl.parentNode.appendChild(f);setTimeout(()=>f.remove(),1050);
 }
 async function vanish(kill){
@@ -273,7 +294,7 @@ async function move(from,to){
    b[p]=queue.shift();queue.push(rnd());placed.push(p);
   }
  }
- if(turn%20===0){placed.push(...placeBonus(nextBonus));nextBonus=rndBonus()}
+ if(turn%C.bonus===0){placed.push(...placeBonus(nextBonus));nextBonus=rndBonus()}
  render(new Set(placed));
  if(placed.length){await wait(220);const r2=collect(placed);if(r2.n){G.sp+=r2.n;await burn(r2);render()}}
  busy=false;
@@ -282,7 +303,7 @@ async function move(from,to){
 function checkEnd(){
  if(freeCells().length===0){
   over=true;sel=null;render();
-  if(score>best){best=score;try{localStorage.setItem('kubiki-best',best)}catch(e){}}
+  if(score>best){best=score;try{localStorage.setItem(bestKey(),best)}catch(e){}}
   $('overtxt').textContent=`Очки: ${score}. Ходов: ${turn}. Линий: ${nlines}. Рекорд: ${best}.`;
   $('over').classList.add('on');
   report('over');
@@ -321,7 +342,13 @@ boardEl.addEventListener('keydown',e=>{
  const j=i+d;if(nbrs(i).includes(j))cells[j].focus();
 });
 $('new').addEventListener('click',newGame);$('again').addEventListener('click',newGame);
-newGame();
+document.querySelectorAll('.size button').forEach(x=>x.addEventListener('click',()=>{
+ const n=+x.dataset.n; if(n===N||busy) return;
+ if(G&&!over) report('quit'); G=null;
+ N=n;C=CFG[n];try{localStorage.setItem('burnfive-size',n)}catch(e){}
+ build();loadBest();rulesText();newGame();
+}));
+build();loadBest();rulesText();newGame();
 }
 </script>
 </body>
