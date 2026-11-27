@@ -11,7 +11,8 @@ const today=()=>new Date().toISOString().slice(0,10);
 const ls={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const rseed=()=>(Math.random()*4294967296)>>>0;
 
-let lang=ls.get('burnfive-lang','en');if(!I.L[lang])lang='en';I.setLang(lang);
+// язык: выбор игрока, иначе русский для русского языка устройства, иначе английский
+let lang=ls.get('burnfive-lang',/^ru\b/i.test(navigator.language||'')?'ru':'en');if(!I.L[lang])lang='en';I.setLang(lang);
 let mode=ls.get('burnfive-mode','e'); if(!['e','l','d'].includes(mode)) mode='e';
 let size=ls.get('burnfive-size',8); if(![8,10].includes(size)) size=8;
 let lvIdx=null, s=null, sel=null, busy=false, G=null, view=null, dayDate=today();
