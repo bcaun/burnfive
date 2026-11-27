@@ -5,6 +5,9 @@ const cname=c=>t('color')[c],bname=b=>t('bonus')[b];
 const tname=x=>x?(t('terrain')[x[0]]||t('terrain').O):t('empty');
 const LEVELS=window.BF_LEVELS;
 const boardEl=$('board');
+// В приложении для iOS страница открывается со схемы burnfive://, сервер тогда указываем полностью
+const NATIVE=location.protocol==='burnfive:',API=NATIVE?'https://burnfive.daagamma.com':'';
+const hap=k=>{try{window.webkit.messageHandlers.bf.postMessage({h:k})}catch(e){}};
 const SID=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const TOUCH=matchMedia('(pointer: coarse)').matches;
 const today=()=>new Date().toISOString().slice(0,10);
@@ -204,8 +207,8 @@ async function doMove(from,d){
  G.prev=G.undone?null:BF.clone(s);
  const ev=BF.move(s,from,d);
  for(const e of ev){
-  if(e.type==='move'){sel=e.player;drawCells(e.snap,new Set(e.painted),'flash');if(e.slid||e.portal)await wait(120);else await wait(60)}
-  else if(e.type==='burn'||e.type==='boom'){
+  if(e.type==='move'){hap('light');sel=e.player;drawCells(e.snap,new Set(e.painted),'flash');if(e.slid||e.portal)await wait(120);else await wait(60)}
+  else if(e.type==='burn'||e.type==='boom'){hap(e.mult>1?'success':'medium');
    e.cells.forEach(i=>{const k=cells[i].querySelector('.k');if(!k)return;k.classList.add('burn');const col=k.dataset.c;
     if(!matchMedia('(prefers-reduced-motion: reduce)').matches)for(let q=0;q<4;q++){const sd=document.createElement('i');sd.className='sand '+(COLORS.includes(col)?col:'y');sd.style.left=(10+Math.random()*60)+'%';sd.style.top=(10+Math.random()*50)+'%';sd.style.setProperty('--sx',((Math.random()-.5)*160)+'%');sd.style.setProperty('--sy',(-40-Math.random()*120)+'%');cells[i].appendChild(sd);setTimeout(()=>sd.remove(),500)}});
    floatText(e.cells,e.type==='boom'?t('boom'):'+'+e.pts+(e.mult>1?' ×2':''),e.type==='boom');
@@ -249,6 +252,7 @@ function finish(){
   $('over1').textContent=t('playAgain');$('over1').onclick=startEndless;
  }
  $('over').classList.add('on');
+ hap(s.won?'success':'warning');
  report('over');
  panel();
 }
@@ -259,9 +263,9 @@ function report(r){
  if(!G||!s||G.sent==='over'||s.turn===0)return;
  G.sent=r;const st=s.st;
  const d={gid:G.gid,sid:SID,v:4,r,tu:s.turn,sc:s.score,ln:s.lines,l:st.L,dbl:st.dbl,sp:st.sp,J:st.J,Jb:st.Jb,T:st.T,X:st.X,Xb:st.Xb,Xk:st.Xk,
-  push:st.push,cr:st.cr,stone:st.stone,fill:s.b.filter(Boolean).length,dur:Math.round((Date.now()-G.t0)/1000),dev:TOUCH?'t':'m',w:innerWidth,un:G.undone?1:0,
+  push:st.push,cr:st.cr,stone:st.stone,fill:s.b.filter(Boolean).length,dur:Math.round((Date.now()-G.t0)/1000),dev:TOUCH?'t':'m',p:NATIVE?'ios':'web',w:innerWidth,un:G.undone?1:0,
   best:mode==='e'?ls.get(bestKey(),0):0,n:s.n,m:mode,lv:mode==='l'&&lvIdx!==null?LEVELS[lvIdx].id:0,won:s.won?1:0,day:mode==='d'?dayDate:''};
- try{const body=JSON.stringify(d);if(!(navigator.sendBeacon&&navigator.sendBeacon('/api/game',new Blob([body],{type:'application/json'}))))fetch('/api/game',{method:'POST',body,keepalive:true,headers:{'content-type':'application/json'}}).catch(()=>{})}catch(e){}
+ try{const body=JSON.stringify(d);if(NATIVE||!(navigator.sendBeacon&&navigator.sendBeacon('/api/game',new Blob([body],{type:'application/json'}))))fetch(API+'/api/game',{method:'POST',body,keepalive:true,headers:{'content-type':'application/json'}}).catch(()=>{})}catch(e){}
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&s&&!s.over)report('hidden')});
 const nickVal=()=>($('nick').value.trim()||t('player')+' '+SID.slice(-3).toUpperCase()).slice(0,16);
@@ -269,13 +273,13 @@ $('nick').addEventListener('change',()=>ls.set('burnfive-nick',$('nick').value.t
 function drawBoard(list){
  lbCache=list;
  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
- $('lb').innerHTML=list&&list.length?list.map(x=>`<li class="${x.me?'me':''}"><span>${esc(x.nick)}</span><span>${x.sc}</span></li>`).join(''):`<li><span>${t('nobody')}</span><span></span></li>`;
+ $('lb').innerHTML=list&&list.length?list.map(x=>`<li class="${x.me?'me':''}"><span>${esc(x.nick)}</span><span>${x.sc}</span></li>`).join(''):`<li class="none"><span>${t('nobody')}</span><span></span></li>`;
 }
 async function loadBoard(){
- try{const r=await fetch('/api/daily?date='+dayDate+'&sid='+SID);if(r.ok)drawBoard((await r.json()).top)}catch(e){}
+ try{const r=await fetch(API+'/api/daily?date='+dayDate+'&sid='+SID);if(r.ok)drawBoard((await r.json()).top)}catch(e){}
 }
 async function submitDay(){
- try{const r=await fetch('/api/daily',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({date:dayDate,gid:G.gid,sid:SID,nick:nickVal(),sc:s.score,tu:s.turn})});
+ try{const r=await fetch(API+'/api/daily',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({date:dayDate,gid:G.gid,sid:SID,nick:nickVal(),sc:s.score,tu:s.turn})});
   if(r.ok){const j=await r.json();drawBoard(j.top);if(j.rank)$('overtxt').textContent+=t('rank',j.rank,j.total)}}catch(e){}
 }
 

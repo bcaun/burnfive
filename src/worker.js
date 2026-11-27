@@ -19,7 +19,7 @@ async function saveGame(req, env){
   if (text.length > 2000) return new Response('too big', {status:413});
   let d; try { d = JSON.parse(text); } catch { return new Response('bad json', {status:400}); }
   if (!/^[a-z0-9]{8,20}$/.test(d.gid || '') || !/^[a-z0-9]{8,20}$/.test(d.sid || '')) return new Response('bad id', {status:400});
-  const m = {n: d.n === 8 ? 8 : 10, m: MODE[d.m] ? d.m : 'e', day: /^\d{4}-\d\d-\d\d$/.test(d.day||'') ? d.day : '', sid:d.sid, r: REASON[d.r] ? d.r : 'over', u: Date.now(), dev: d.dev === 't' ? 't' : 'm', v: clamp(d.v, 99)};
+  const m = {p: d.p === 'ios' ? 'ios' : 'web', n: d.n === 8 ? 8 : 10, m: MODE[d.m] ? d.m : 'e', day: /^\d{4}-\d\d-\d\d$/.test(d.day||'') ? d.day : '', sid:d.sid, r: REASON[d.r] ? d.r : 'over', u: Date.now(), dev: d.dev === 't' ? 't' : 'm', v: clamp(d.v, 99)};
   for (const k of NUM) m[k] = clamp(d[k], 10000000);
   // l: число линий длиной 4..10 (с версии 3; раньше 5..10)
   const l = Array.isArray(d.l) ? d.l.map(x => clamp(x, 10000)) : [];
@@ -100,6 +100,33 @@ ${ends.map((n,i) => `<div class="bar"><span>${endLabels[i]}</span><span><i style
 </div></body></html>`;
 }
 
+function cors(resp){
+  const h = new Headers(resp.headers);
+  h.set('access-control-allow-origin', '*');
+  h.set('access-control-allow-methods', 'GET, POST, OPTIONS');
+  h.set('access-control-allow-headers', 'content-type');
+  h.set('access-control-max-age', '86400');
+  return new Response(resp.body, {status: resp.status, headers: h});
+}
+
+// Грубые слова в именах для таблицы дня заменяем на «Player»
+const BAD = /(fuck|shit|cunt|bitch|nigg|fag|whore|dick|pussy|хуй|хуе|хуя|пизд|ебан|ебат|ёб|бля|сука|мудак|пидор|пидар|гандон|шлюх|залуп)/i;
+
+const PRIVACY = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Burn Five: Privacy</title>
+<style>body{margin:0;font:17px/1.55 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;color:#3b2a3f;background:#fff}.w{max-width:680px;margin:0 auto;padding:40px 20px}h1{font-size:30px;margin:0 0 6px}h2{font-size:20px;margin:36px 0 8px}p,li{margin:6px 0}.m{color:#6b5a6e;font-size:14px}</style></head><body><div class="w">
+<h1>Burn Five: Privacy Policy</h1><p class="m">Last updated: 27 November 2026</p>
+<p>Burn Five does not have accounts, does not show ads and does not track you across apps or websites.</p>
+<h2>What the game sends</h2>
+<ul><li><b>Game results</b>, to balance difficulty: number of moves, score, lines burned, bonuses used, game mode and level, board size, game length in seconds, whether the device is a phone, screen width, and whether the game ran in the app or in a browser. Each game is tagged with a random number created when the game opens. It is not stored between launches and cannot identify you.</li>
+<li><b>Daily challenge</b>: when a daily game ends, your score, number of moves and the name you typed (or “Player” and three random characters) are sent to the leaderboard and shown to other players.</li></ul>
+<p>Nothing else is collected: no name, email, contacts, location, advertising identifier or device identifier.</p>
+<h2>Where it is stored</h2><p>On Cloudflare servers used to run the game. The data is used only to improve the game and to show the daily leaderboard. It is not sold or shared.</p>
+<h2>On your device</h2><p>Your best scores, level progress, chosen language and leaderboard name are kept on your device only.</p>
+<h2>Children</h2><p>The game is suitable for all ages and does not knowingly collect personal data from anyone.</p>
+<h2 lang="ru">Конфиденциальность (кратко по-русски)</h2>
+<p lang="ru">В игре нет аккаунтов, рекламы и слежки. На сервер уходят только обезличенные итоги партий (ходы, очки, линии, бонусы, режим, размер поля, длительность, тип устройства и ширина экрана) со случайным номером, который не сохраняется между запусками. В задаче дня также отправляются ваши очки и имя, которое вы ввели для таблицы. Рекорды, прогресс уровней, язык и имя хранятся только на устройстве. Данные используются только для улучшения игры и таблицы дня и никому не передаются.</p>
+</div></body></html>`;
+
 // --- задача дня: таблица лучших ---
 const DAY = /^\d{4}-\d\d-\d\d$/;
 function dayOk(d){ if (!DAY.test(d)) return false; const t = Date.parse(d + 'T00:00:00Z'), now = Date.now(); return Math.abs(now - t) < 2.2 * 86400000; }
@@ -125,29 +152,29 @@ async function daily(req, env, url){
   const text = await req.text(); if (text.length > 1000) return new Response('too big', {status:413});
   let d; try { d = JSON.parse(text); } catch { return new Response('bad json', {status:400}); }
   if (!dayOk(d.date || '') || !/^[a-z0-9]{8,20}$/.test(d.gid || '') || !/^[a-z0-9]{8,20}$/.test(d.sid || '')) return new Response('bad', {status:400});
-  const nick = String(d.nick || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 16) || 'Player';
+  let nick = String(d.nick || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 16) || 'Player';
+  if (BAD.test(nick.replace(/[\s._-]/g, ''))) nick = 'Player';
   await env.GAMES.put('d:' + d.date + ':' + d.gid, '', {metadata:{nick, sid:d.sid, sc:clamp(d.sc, 10000000), tu:clamp(d.tu, 100000), u:Date.now()}});
   return json(await dayTop(env, d.date, d.sid));
 }
 
 function csv(g){
-  const head = ['date','mode','level','day','won','board','session','outcome','turns','score','lines','len4','len5','len6','len7','len8','len9','len10','double','spawn_lines','joker','joker_burned','triple','destroyer','destroyer_used','destroyer_killed','pushes','cracked','stoned','fill','seconds','device','width','best'];
-  const rows = g.map(x => [new Date(x.u).toISOString(), x.m||'e', x.lv||'', x.day||'', x.won||0, (x.n||10), x.sid, x.r, x.tu, x.sc, x.ln, ...((x.l||[]).length === 7 ? x.l : [0, ...(x.l||[0,0,0,0,0,0])]), x.dbl, x.sp, x.J, x.Jb, x.T, x.X, x.Xb, x.Xk, x.push||0, x.cr||0, x.stone||0, x.fill, x.dur, x.dev==='t'?'phone':'desktop', x.w, x.best].join(','));
+  const head = ['date','platform','mode','level','day','won','board','session','outcome','turns','score','lines','len4','len5','len6','len7','len8','len9','len10','double','spawn_lines','joker','joker_burned','triple','destroyer','destroyer_used','destroyer_killed','pushes','cracked','stoned','fill','seconds','device','width','best'];
+  const rows = g.map(x => [new Date(x.u).toISOString(), x.p||'web', x.m||'e', x.lv||'', x.day||'', x.won||0, (x.n||10), x.sid, x.r, x.tu, x.sc, x.ln, ...((x.l||[]).length === 7 ? x.l : [0, ...(x.l||[0,0,0,0,0,0])]), x.dbl, x.sp, x.J, x.Jb, x.T, x.X, x.Xb, x.Xk, x.push||0, x.cr||0, x.stone||0, x.fill, x.dur, x.dev==='t'?'phone':'desktop', x.w, x.best].join(','));
   return [head.join(','), ...rows].join('\n');
 }
 
 export default {
   async fetch(req, env){
     const url = new URL(req.url);
-    if (url.pathname === '/api/game') {
-      if (req.method !== 'POST') return new Response('method', {status:405});
-      if (!env.GAMES) return new Response('no storage', {status:500});
-      return saveGame(req, env);
+    if (url.pathname === '/api/game' || url.pathname === '/api/daily') {
+      // приложение для iOS обращается сюда со своей схемы, поэтому разрешаем запросы с любого источника
+      if (req.method === 'OPTIONS') return cors(new Response(null, {status:204}));
+      if (!env.GAMES) return cors(new Response('no storage', {status:500}));
+      if (url.pathname === '/api/game') return cors(req.method === 'POST' ? await saveGame(req, env) : new Response('method', {status:405}));
+      return cors(await daily(req, env, url));
     }
-    if (url.pathname === '/api/daily') {
-      if (!env.GAMES) return new Response('no storage', {status:500});
-      return daily(req, env, url);
-    }
+    if (url.pathname === '/privacy') return new Response(PRIVACY, {headers:{'content-type':'text/html; charset=utf-8'}});
     if (JS[url.pathname]) return new Response(JS[url.pathname], {headers:{'content-type':'application/javascript; charset=utf-8','cache-control':'no-cache'}});
     if (url.pathname === '/stats' || url.pathname === '/stats.csv') {
       const key = url.searchParams.get('key') || '';

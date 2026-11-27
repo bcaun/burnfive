@@ -156,7 +156,7 @@ td{padding:7px 0;border-bottom:1px solid var(--sep)}tr:last-child td{border-bott
 .lb{list-style:none;margin:8px 0 0;padding:0;counter-reset:n}
 .lb li{display:grid;grid-template-columns:22px 1fr auto;gap:8px;padding:8px 0;border-bottom:1px solid var(--sep);font-size:15px;font-variant-numeric:tabular-nums;counter-increment:n}
 .lb li::before{content:counter(n);color:var(--mute);font-weight:700}
-.lb li:last-child{border-bottom:0}
+.lb li:last-child{border-bottom:0}.lb li.none{grid-template-columns:1fr auto;color:var(--mute)}.lb li.none::before{content:none}
 .lb li.me{font-weight:800}.lb li.me::before{color:var(--ink)}
 .lb li.me span:first-child::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ink);margin-left:8px;vertical-align:middle}
 .lb span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
