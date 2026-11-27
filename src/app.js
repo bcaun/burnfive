@@ -1,9 +1,8 @@
 {
 const $=id=>document.getElementById(id);
-const NAMES={r:'красный',y:'желтый',g:'зеленый',b:'фиолетовый',J:'джокер',X:'уничтожитель',S:'камень'};
-const BNAME={J:'джокер',T:'тройка',X:'уничтожитель'};
-const TNAME={P:'колонна',I:'лед',R:'краска',Y:'краска',G:'краска',V:'краска'};
-const GOALCOL={r:'красных',y:'желтых',g:'зеленых',b:'фиолетовых'};
+const I=window.BF_I18N,t=I.t;
+const cname=c=>t('color')[c],bname=b=>t('bonus')[b];
+const tname=x=>x?(t('terrain')[x[0]]||t('terrain').O):t('empty');
 const LEVELS=window.BF_LEVELS;
 const boardEl=$('board');
 const SID=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -12,6 +11,7 @@ const today=()=>new Date().toISOString().slice(0,10);
 const ls={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const rseed=()=>(Math.random()*4294967296)>>>0;
 
+let lang=ls.get('burnfive-lang','en');if(!I.L[lang])lang='en';I.setLang(lang);
 let mode=ls.get('burnfive-mode','e'); if(!['e','l','d'].includes(mode)) mode='e';
 let size=ls.get('burnfive-size',8); if(![8,10].includes(size)) size=8;
 let lvIdx=null, s=null, sel=null, busy=false, G=null, view=null, dayDate=today();
@@ -47,7 +47,7 @@ const cells=[];
 function build(){
  const n=s.n;boardEl.innerHTML='';cells.length=0;boardEl.style.setProperty('--n',n);
  for(let i=0;i<n*n;i++){const c=document.createElement('button');c.className='c'+(s.T[i]?' t-'+s.T[i]:'');c.dataset.i=i;c.setAttribute('role','gridcell');if(s.T[i])c.innerHTML=terrainInner(s.T[i]);cells.push(c);boardEl.appendChild(c)}
- boardEl.setAttribute('aria-label',`Игровое поле ${n} на ${n}`);
+ boardEl.setAttribute('aria-label',t('board',n));
  view={b:s.b.slice(),k:s.k.slice()};
 }
 function drawCells(v,pop=new Set(),cls=''){
@@ -60,31 +60,30 @@ function drawCells(v,pop=new Set(),cls=''){
   const sj=!busy&&!s.over&&!col?(s.seeds||[]).indexOf(i):-1;let sd=c.querySelector('.seed');
   if(sj>=0){const sc=s.queue[sj];if(!sd||sd.dataset.c!==sc){if(sd)sd.remove();sd=document.createElement('span');sd.className='seed '+sc;sd.dataset.c=sc;sd.innerHTML=sym(sc);c.appendChild(sd)}}
   else if(sd)sd.remove();
-  if(!col){if(k)k.remove();c.setAttribute('aria-label',(s.T[i]?TNAME[s.T[i]]||'портал':'пусто')+(sj>=0?`, сюда упадет ${NAMES[s.queue[sj]]}`:''));return}
+  if(!col){if(k)k.remove();c.setAttribute('aria-label',tname(s.T[i])+(sj>=0?t('landsHere',cname(s.queue[sj])):''));return}
   if(!k||k.dataset.c!==col){if(k)k.remove();k=document.createElement('span');k.className='k '+col;k.dataset.c=col;k.dataset.kk='-1';c.appendChild(k)}
   const cr=v.k[i]>0;k.classList.toggle('cr',cr);k.classList.toggle('hot',cr&&v.k[i]<=3);
   if(k.dataset.kk!==String(v.k[i])){k.dataset.kk=v.k[i];k.innerHTML=kInner(col,v.k[i],crackLife())}
   if(cr)k.dataset.n=v.k[i];else delete k.dataset.n;
   if(pop.has(i)&&cls){k.classList.remove(cls);void k.offsetWidth;k.classList.add(cls)}
-  c.setAttribute('aria-label',NAMES[col]+(cr?`, станет камнем через ${v.k[i]}`:''));
+  c.setAttribute('aria-label',cname(col)+(cr?t('stoneIn',v.k[i]):''));
  });
 }
 
 // ---------- боковая панель ----------
-const word=n=>n===0?'ничего':n===1?'1 кубик':'2 кубика';
 const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c};
 const icon=(t,cls='')=>t==='T'?`<span class="trip">${'<span class="ico"><span class="k g"></span></span>'.repeat(3)}</span>`:`<span class="ico ${cls}">${kHTML(t)}</span>`;
-function phaseText(t){
+function phaseText(n){
  const tp=s.cfg.tempo;
- if(tp.every)return tp.every===1?'Кубик каждый ход':`Кубик раз в ${tp.every} ${plural(tp.every,'ход','хода','ходов')}`;
- const p3=tp.p3===2?'2 кубика каждый ход':'каждый третий ход 2 кубика';
- return t<=tp.p1?'Фаза 1: кубик раз в 2 хода':t<=tp.p2?'Фаза 2: кубик каждый ход':'Фаза 3: '+p3;
+ if(tp.every)return tp.every===1?t('everyMove'):t('everyN',tp.every);
+ const p3=tp.p3===2?t('p3two'):t('p3third');
+ return n<=tp.p1?t('phase1'):n<=tp.p2?t('phase2'):t('phase3',p3);
 }
 function goalText(g){
- if(g.type==='lines')return g.color?`Сожгите ${g.count} ${plural(g.count,'линию','линии','линий')} из ${GOALCOL[g.color]} кубиков`:`Сожгите ${g.count} ${plural(g.count,'линию','линии','линий')}`;
- if(g.type==='score')return `Наберите ${g.count} очков`;
- if(g.type==='double')return `Сожгите две линии одним ходом ${g.count} ${plural(g.count,'раз','раза','раз')}`;
- if(g.type==='stones')return 'Уберите все камни';
+ if(g.type==='lines')return g.color?t('goalColor',g.count,cname(g.color),g.color):t('goalLines',g.count);
+ if(g.type==='score')return t('goalScore',g.count);
+ if(g.type==='double')return t('goalDouble',g.count);
+ if(g.type==='stones')return t('goalStones');
  return '';
 }
 function panel(){
@@ -93,54 +92,51 @@ function panel(){
  $('turn').textContent=s.turn;$('lines').textContent=s.lines;
  $('fill').textContent=`${s.b.filter(Boolean).length}/${s.T.filter(t=>t!=='P').length}`;
  $('phase').textContent=phaseText(s.turn+1);
- $('incoming').textContent=word(BF.spawnCount(s.cfg,s.turn+1));
+ $('incoming').textContent=t('word',BF.spawnCount(s.cfg,s.turn+1));
  const cap=s.T.filter(t=>t!=='P').length,fillN=s.b.filter(Boolean).length,heat=Math.max(0,Math.min(1,(fillN/cap-0.7)/0.25));
  document.querySelector('.boardbox').style.setProperty('--side',heat?`color-mix(in srgb,#e0483a ${Math.round(heat*100)}%,var(--slabside))`:'');
- $('next').innerHTML=s.queue.slice(0,2).map((c,j)=>`<span class="ico ${j?'sm':''}" role="img" aria-label="${NAMES[c]}">${kHTML(c)}</span>`).join('');
+ $('next').innerHTML=s.queue.slice(0,2).map((c,j)=>`<span class="ico ${j?'sm':''}" role="img" aria-label="${cname(c)}">${kHTML(c)}</span>`).join('');
  $('hnext').innerHTML=$('next').innerHTML;
  const be=s.cfg.bonusEvery;$('bonusrow').hidden=!be;
- if(be){const left=be-s.turn%be;$('hbonus').innerHTML=icon(s.nextBonus,'xs')+`<span>через ${left}</span>`}else $('hbonus').innerHTML='';
- if(mode==='l'&&lvIdx!==null){const gp=BF.goalProgress(s),left=LEVELS[lvIdx].moves-s.turn;$('hlab').textContent='Цель';$('hscore').textContent=`${gp.have}/${gp.need}`;
-  if(!be)$('hbonus').innerHTML=`<span>Осталось ${left} ${plural(left,'ход','хода','ходов')}</span>`;}
- else{$('hlab').textContent='Очки';$('hscore').textContent=s.score}
+ if(be){const left=be-s.turn%be;$('hbonus').innerHTML=icon(s.nextBonus,'xs')+`<span>${t('inN',left)}</span>`}else $('hbonus').innerHTML='';
+ if(mode==='l'&&lvIdx!==null){const gp=BF.goalProgress(s),left=LEVELS[lvIdx].moves-s.turn;$('hlab').textContent=t('goal');$('hscore').textContent=`${gp.have}/${gp.need}`;
+  if(!be)$('hbonus').innerHTML=`<span>${t('movesLeft',left)}</span>`;}
+ else{$('hlab').textContent=t('score');$('hscore').textContent=s.score}
  $('undo').disabled=!(G&&G.prev&&!G.undone&&!s.over&&!busy);
- if(be){const left=be-s.turn%be;$('bicon').innerHTML=icon(s.nextBonus,'xs');$('btxt').textContent=`Бонус ${left===1?'после этого хода':'через '+left+' '+plural(left,'ход','хода','ходов')}: ${BNAME[s.nextBonus]}`}
+ if(be){const left=be-s.turn%be;$('bicon').innerHTML=icon(s.nextBonus,'xs');$('btxt').textContent=left===1?t('bonusNow',bname(s.nextBonus)):t('bonusIn',left,bname(s.nextBonus))}
  if(mode==='l'&&lvIdx!==null){
   const lv=LEVELS[lvIdx],gp=BF.goalProgress(s);
-  $('lvname').textContent=`Уровень ${lv.id}. ${lv.name}`;$('goaltxt').textContent=goalText(lv.goal);
-  $('goalbar').style.width=(gp.need?gp.have*100/gp.need:0)+'%';$('goalnum').textContent=`${gp.have} из ${gp.need}`;
-  const left=lv.moves-s.turn;$('movesleft').textContent=`Осталось ${left} ${plural(left,'ход','хода','ходов')}`;
-  $('hintcard').innerHTML=`<div class="lab">Подсказка</div><div class="hint">${lv.hint}</div>`;
+  $('lvname').textContent=t('level',lv.id,lvName(lv));$('goaltxt').textContent=goalText(lv.goal);
+  $('goalbar').style.width=(gp.need?gp.have*100/gp.need:0)+'%';$('goalnum').textContent=t('of',gp.have,gp.need);
+  const left=lv.moves-s.turn;$('movesleft').textContent=t('movesLeft',left);
+  $('hintcard').innerHTML=`<div class="lab">${t('hint')}</div><div class="hint">${lvHint(lv)}</div>`;
  }
- if(mode==='e'){$('bestlab').textContent='Рекорд';$('best').textContent=Math.max(ls.get(bestKey(),0),s.score)}
- if(mode==='d'){$('bestlab').textContent='Лучший сегодня';$('best').textContent=Math.max(ls.get('burnfive-day-'+dayDate,0),s.score)}
+ if(mode==='e'){$('bestlab').textContent=t('best');$('best').textContent=Math.max(ls.get(bestKey(),0),s.score)}
+ if(mode==='d'){$('bestlab').textContent=t('bestToday');$('best').textContent=Math.max(ls.get('burnfive-day-'+dayDate,0),s.score)}
 }
 const bestKey=()=>size===10?'kubiki-best':'burnfive-best-'+size;
 function rules(){
  const c=s.cfg,o=[];
- o.push('Ход: сдвиньте кубик на одну клетку по горизонтали или вертикали. На телефоне проведите по кубику пальцем. Мышью: нажмите на кубик, потом на соседнюю клетку. На клавиатуре: стрелки.');
- o.push('Толчок: кубик можно двинуть и в занятую клетку, тогда он толкнет весь ряд перед собой на одну клетку, если в конце ряда есть свободное место.');
- o.push(`${c.min} и больше кубиков одного цвета в ряд по горизонтали или вертикали сгорают. Две линии одним ходом: очки удваиваются.`);
- o.push('Если на ходу что-то сгорело, новый кубик не появляется. Кубик, упавший в линию, тоже ее сжигает.');
+ o.push(t('r1'));o.push(t('r2'));o.push(t('r3',c.min));o.push(t('r4'));
  if(c.tempo.every)o.push(phaseText(1)+'.');
- else o.push(`Ходы 1-${c.tempo.p1}: кубик раз в 2 хода. ${c.tempo.p1+1}-${c.tempo.p2}: кубик каждый ход. С ${c.tempo.p2+1}-го: ${c.tempo.p3===2?'2 кубика каждый ход':'каждый третий ход 2 кубика'}.`);
- if(c.crack&&c.crack.rate)o.push(`Кубик с трещиной и числом станет камнем через столько ходов${c.crack.from>1?` (трещины появляются с ${c.crack.from}-го хода)`:''}. Камень не двигается, не горит и мешает линиям. Убрать его может только уничтожитель.`);
- o.push('Бледные кубики с пунктиром показывают, куда упадут следующие кубики. Если клетку займете вы, кубик упадет в другое место.');
- o.push('Одну ошибку за партию можно отменить кнопкой со стрелкой назад.'+(mode==='d'?'':' Если задуматься дольше 6 секунд, игра подскажет ход, покачав нужный кубик.'));
- if(c.bonusEvery)o.push(`Каждые ${c.bonusEvery} ${plural(c.bonusEvery,'ход','хода','ходов')} на поле появляется бонус.`);
- if(mode==='l')o.push(`На уровень дается ${c.moves} ${plural(c.moves,'ход','хода','ходов')}.`);
+ else o.push(t('rTempo',c.tempo.p1,c.tempo.p2,c.tempo.p3===2?t('p3two'):t('p3third')));
+ if(c.crack&&c.crack.rate)o.push(t('rCrack',c.crack.from));
+ o.push(t('rSeeds'));
+ o.push(t('rUndo')+(mode==='d'?'':t('rHintIdle')));
+ if(c.bonusEvery)o.push(t('rBonus',c.bonusEvery));
+ if(mode==='l')o.push(t('rMoves',c.moves));
  $('rules').innerHTML=o.map(x=>`<li>${x}</li>`).join('');
  const has=t=>s.T.some(x=>x&&x.startsWith(t));
  const tl=[];
- if(has('P'))tl.push(['t-P','<b>Колонна.</b> Не двигается, кубики через нее не проходят и не толкаются.']);
- if(has('I'))tl.push(['t-I','<b>Лед.</b> Кубик на льду скользит дальше, пока не упрется в препятствие или не съедет со льда.']);
- if(has('O'))tl.push(['t-O1','<b>Портал.</b> Кубик, вставший на портал, переносится на парный портал того же цвета, если тот свободен.']);
+ if(has('P'))tl.push(['t-P',t('tP')]);
+ if(has('I'))tl.push(['t-I',t('tI')]);
+ if(has('O'))tl.push(['t-O1',t('tO')]);
  const pc=s.T.find(x=>/^[RYGV]$/.test(x));
- if(pc)tl.push(['t-'+pc,'<b>Краска.</b> Перекрашивает кубик, который на нее встал.']);
+ if(pc)tl.push(['t-'+pc,t('tPaint')]);
  $('terrainlegend').innerHTML=tl.map(([c,t])=>`<div class="tiles"><span class="tile c ${c}">${terrainInner(c.slice(2))}</span><span>${t}</span></div>`).join('');
  const bt=c.bonusEvery?c.bonusTypes:[];
  [...$('bonuslegend').children].forEach((li,j)=>li.hidden=!bt.includes(['J','T','X'][j])&&!(j===2&&s.b.includes('X')));
- $('pts').innerHTML=Object.entries(c.pts).map(([k,v])=>`<tr><td>${k} в ряд</td><td>${v}</td></tr>`).join('')+'<tr><td>Две линии одним ходом</td><td>×2</td></tr>';
+ $('pts').innerHTML=Object.entries(c.pts).map(([k,v])=>`<tr><td>${t('inRow',k)}</td><td>${v}</td></tr>`).join('')+`<tr><td>${t('twoLines')}</td><td>×2</td></tr>`;
 }
 
 // ---------- режимы ----------
@@ -161,7 +157,7 @@ function startEndless(){
 function startDaily(){
  dayDate=today();
  const d=new Date(dayDate+'T12:00:00Z');
- $('daylab').textContent='Задача на '+d.toLocaleDateString('ru-RU',{day:'numeric',month:'long',timeZone:'UTC'});
+ $('daylab').textContent=t('dayFor',d.toLocaleDateString(t('locale'),{day:'numeric',month:'long',timeZone:'UTC'}));
  $('nick').value=ls.get('burnfive-nick','');
  begin(BF.createDaily(dayDate));loadBoard();
 }
@@ -170,13 +166,13 @@ function showLevels(){
  const prog=ls.get('burnfive-levels',{});
  const CHECK='<svg class="badge" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>',LOCK='<svg class="badge" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
  const cur=LEVELS.findIndex((lv,j)=>!prog[lv.id]&&(j===0||prog[LEVELS[j-1].id]));
- $('lvpick').innerHTML=LEVELS.map((lv,j)=>{const open=j===0||prog[LEVELS[j-1].id];return `<button class="lv${prog[lv.id]?' done':''}${j===cur?' cur':''}" data-j="${j}" ${open?'':'disabled'} aria-label="Уровень ${lv.id}: ${lv.name}${prog[lv.id]?', пройден':open?'':', закрыт'}"><b>${lv.id}</b><span>${lv.name}</span>${prog[lv.id]?CHECK:open?'':LOCK}</button>`}).join('');
+ $('lvpick').innerHTML=LEVELS.map((lv,j)=>{const open=j===0||prog[LEVELS[j-1].id];return `<button class="lv${prog[lv.id]?' done':''}${j===cur?' cur':''}" data-j="${j}" ${open?'':'disabled'} aria-label="${t('lvAria',lv.id,lvName(lv),prog[lv.id],open)}"><b>${lv.id}</b><span>${lvName(lv)}</span>${prog[lv.id]?CHECK:open?'':LOCK}</button>`}).join('');
  $('lvpick').hidden=false;$('side').classList.add('picking');$('undo').hidden=true;
  const done=LEVELS.filter(lv=>prog[lv.id]).length;
- $('hlab').textContent='Пройдено';$('hscore').textContent=`${done} из ${LEVELS.length}`;$('hnext').innerHTML='';
+ $('hlab').textContent=t('completed');$('hscore').textContent=t('of',done,LEVELS.length);$('hnext').innerHTML='';
  $('hbonus').innerHTML=`<span class="bar" style="width:110px"><i style="width:${done*100/LEVELS.length}%"></i></span>`;
  const nx=LEVELS[cur>=0?cur:LEVELS.length-1];
- $('hintcard').hidden=false;$('hintcard').innerHTML=`<div class="lab">${cur>=0?'Следующий уровень':'Все уровни пройдены'}</div><div class="goal">${nx.id}. ${nx.name}</div><div class="hint">${nx.hint}</div>`;
+ $('hintcard').hidden=false;$('hintcard').innerHTML=`<div class="lab">${cur>=0?t('nextLevel'):t('allDone')}</div><div class="goal">${nx.id}. ${lvName(nx)}</div><div class="hint">${lvHint(nx)}</div>`;
  s=BF.createLevel({terrain:Array(8).fill('........'),moves:1,goal:{type:'lines',count:1}},1);build();drawCells(view);
  $('goalcard').hidden=true;$('relevel').hidden=true;$('tolevels').hidden=true;
 }
@@ -211,11 +207,11 @@ async function doMove(from,d){
   else if(e.type==='burn'||e.type==='boom'){
    e.cells.forEach(i=>{const k=cells[i].querySelector('.k');if(!k)return;k.classList.add('burn');const col=k.dataset.c;
     if(!matchMedia('(prefers-reduced-motion: reduce)').matches)for(let q=0;q<4;q++){const sd=document.createElement('i');sd.className='sand '+(COLORS.includes(col)?col:'y');sd.style.left=(10+Math.random()*60)+'%';sd.style.top=(10+Math.random()*50)+'%';sd.style.setProperty('--sx',((Math.random()-.5)*160)+'%');sd.style.setProperty('--sy',(-40-Math.random()*120)+'%');cells[i].appendChild(sd);setTimeout(()=>sd.remove(),500)}});
-   floatText(e.cells,e.type==='boom'?'Бум':'+'+e.pts+(e.mult>1?' ×2':''),e.type==='boom');
+   floatText(e.cells,e.type==='boom'?t('boom'):'+'+e.pts+(e.mult>1?' ×2':''),e.type==='boom');
    await wait(270);if(sel!==null&&!e.snap.b[sel])sel=null;drawCells(e.snap);
   }
   else if(e.type==='stone'){drawCells(e.snap,new Set(e.cells),'petrify');await wait(160)}
-  else if(e.type==='spawn'){drawCells(e.snap,new Set(e.cells),'pop');if(e.bonus)floatText(e.cells,e.bonus==='T'?'Тройка':BNAME[e.bonus][0].toUpperCase()+BNAME[e.bonus].slice(1),true);await wait(230)}
+  else if(e.type==='spawn'){drawCells(e.snap,new Set(e.cells),'pop');if(e.bonus)floatText(e.cells,t('bonusFloat')[e.bonus],true);await wait(230)}
  }
  if(sel!==null&&!s.b[sel])sel=null;
  busy=false;
@@ -224,32 +220,32 @@ async function doMove(from,d){
 }
 function finish(){
  sel=null;drawCells({b:s.b.slice(),k:s.k.slice()});
- const why={full:'Поле заполнено',stuck:'Ходов больше нет',moves:'Ходы закончились',goal:''}[s.reason];
+ const why=t('why')[s.reason];
  $('over2').hidden=true;$('overmark').hidden=true;
  if(mode==='l'){
   const lv=LEVELS[lvIdx];
   if(s.won){
    const prog=ls.get('burnfive-levels',{});const left=lv.moves-s.turn;prog[lv.id]=Math.max(prog[lv.id]||0,left+1);ls.set('burnfive-levels',prog);
    $('overmark').innerHTML=kHTML('b');$('overmark').hidden=false;
-   $('overh').textContent='Уровень пройден';$('overtxt').textContent=`Осталось ходов: ${left}. Очки: ${s.score}.`;
+   $('overh').textContent=t('lvDone');$('overtxt').textContent=t('lvDoneTxt',left,s.score);
    const last=lvIdx===LEVELS.length-1;
-   $('over1').textContent=last?'Все уровни':'Следующий';$('over1').onclick=()=>last?showLevelsFromOver():startLevel(lvIdx+1);
-   $('over2').hidden=false;$('over2').textContent='Еще раз';$('over2').onclick=()=>startLevel(lvIdx);
+   $('over1').textContent=last?t('allLevels'):t('nextBtn');$('over1').onclick=()=>last?showLevelsFromOver():startLevel(lvIdx+1);
+   $('over2').hidden=false;$('over2').textContent=t('again');$('over2').onclick=()=>startLevel(lvIdx);
   }else{
-   $('overh').textContent=why;$('overtxt').textContent=goalText(lv.goal)+': '+BF.goalProgress(s).have+' из '+BF.goalProgress(s).need+'.';
-   $('over1').textContent='Еще раз';$('over1').onclick=()=>startLevel(lvIdx);
-   $('over2').hidden=false;$('over2').textContent='Все уровни';$('over2').onclick=showLevelsFromOver;
+   $('overh').textContent=why;$('overtxt').textContent=t('lvLoseTxt',goalText(lv.goal),BF.goalProgress(s).have,BF.goalProgress(s).need);
+   $('over1').textContent=t('again');$('over1').onclick=()=>startLevel(lvIdx);
+   $('over2').hidden=false;$('over2').textContent=t('allLevels');$('over2').onclick=showLevelsFromOver;
   }
  }else if(mode==='d'){
   const k='burnfive-day-'+dayDate,best=Math.max(ls.get(k,0),s.score);ls.set(k,best);
   ls.set('burnfive-day-tries-'+dayDate,ls.get('burnfive-day-tries-'+dayDate,0)+1);
-  $('overh').textContent=why;$('overtxt').textContent=`Очки: ${s.score}. Ходов: ${s.turn}. Ваш лучший результат сегодня: ${best}.`;
-  $('over1').textContent='Еще раз';$('over1').onclick=startDaily;
+  $('overh').textContent=why;$('overtxt').textContent=t('dayTxt',s.score,s.turn,best);
+  $('over1').textContent=t('playAgain');$('over1').onclick=startDaily;
   submitDay();
  }else{
   const best=Math.max(ls.get(bestKey(),0),s.score);ls.set(bestKey(),best);
-  $('overh').textContent=why;$('overtxt').textContent=`Очки: ${s.score}. Ходов: ${s.turn}. Линий: ${s.lines}. Рекорд: ${best}.`;
-  $('over1').textContent='Сыграть еще';$('over1').onclick=startEndless;
+  $('overh').textContent=why;$('overtxt').textContent=t('endTxt',s.score,s.turn,s.lines,best);
+  $('over1').textContent=t('playAgain');$('over1').onclick=startEndless;
  }
  $('over').classList.add('on');
  report('over');
@@ -267,18 +263,19 @@ function report(r){
  try{const body=JSON.stringify(d);if(!(navigator.sendBeacon&&navigator.sendBeacon('/api/game',new Blob([body],{type:'application/json'}))))fetch('/api/game',{method:'POST',body,keepalive:true,headers:{'content-type':'application/json'}}).catch(()=>{})}catch(e){}
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&s&&!s.over)report('hidden')});
-const nickVal=()=>($('nick').value.trim()||'Игрок '+SID.slice(-3).toUpperCase()).slice(0,16);
+const nickVal=()=>($('nick').value.trim()||t('player')+' '+SID.slice(-3).toUpperCase()).slice(0,16);
 $('nick').addEventListener('change',()=>ls.set('burnfive-nick',$('nick').value.trim()));
 function drawBoard(list){
+ lbCache=list;
  const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
- $('lb').innerHTML=list&&list.length?list.map(x=>`<li class="${x.me?'me':''}"><span>${esc(x.nick)}</span><span>${x.sc}</span></li>`).join(''):'<li><span>Пока никого</span><span></span></li>';
+ $('lb').innerHTML=list&&list.length?list.map(x=>`<li class="${x.me?'me':''}"><span>${esc(x.nick)}</span><span>${x.sc}</span></li>`).join(''):`<li><span>${t('nobody')}</span><span></span></li>`;
 }
 async function loadBoard(){
  try{const r=await fetch('/api/daily?date='+dayDate+'&sid='+SID);if(r.ok)drawBoard((await r.json()).top)}catch(e){}
 }
 async function submitDay(){
  try{const r=await fetch('/api/daily',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({date:dayDate,gid:G.gid,sid:SID,nick:nickVal(),sc:s.score,tu:s.turn})});
-  if(r.ok){const j=await r.json();drawBoard(j.top);if(j.rank)$('overtxt').textContent+=` Место в таблице: ${j.rank} из ${j.total}.`}}catch(e){}
+  if(r.ok){const j=await r.json();drawBoard(j.top);if(j.rank)$('overtxt').textContent+=t('rank',j.rank,j.total)}}catch(e){}
 }
 
 // ---------- подсказка, отмена, предпросмотр ----------
@@ -354,6 +351,29 @@ $('new').addEventListener('click',()=>{if(busy)return;if(s&&!s.over)report('quit
 $('reday').addEventListener('click',()=>{if(busy)return;if(s&&!s.over)report('quit');startDaily()});
 $('relevel').addEventListener('click',()=>{if(busy||lvIdx===null)return;if(!s.over)report('quit');startLevel(lvIdx)});
 $('tolevels').addEventListener('click',()=>{if(busy)return;if(s&&!s.over)report('quit');$('over').classList.remove('on');showLevels()});
+function lvName(lv){return lang==='ru'?lv.name:(lv.name_en||lv.name)}
+function lvHint(lv){return lang==='ru'?lv.hint:(lv.hint_en||lv.hint)}
+let lbCache=null;
+function applyLang(){
+ I.setLang(lang);document.documentElement.lang=lang;
+ document.querySelectorAll('[data-t]').forEach(el=>el.textContent=t(el.dataset.t));
+ document.querySelectorAll('[data-th]').forEach(el=>el.innerHTML=t(el.dataset.th));
+ document.querySelectorAll('[data-ta]').forEach(el=>el.setAttribute('aria-label',t(el.dataset.ta)));
+ document.querySelectorAll('[data-tt]').forEach(el=>el.setAttribute('title',t(el.dataset.tt)));
+ document.querySelectorAll('[data-tp]').forEach(el=>el.setAttribute('placeholder',t(el.dataset.tp)));
+ document.querySelectorAll('.lang button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.l===lang)));
+ drawBoard(lbCache);
+}
+function switchLang(l){
+ if(l===lang||busy)return;lang=l;ls.set('burnfive-lang',l);applyLang();
+ if(!s)return;
+ if(mode==='l'&&lvIdx===null){showLevels();return}
+ if(mode==='d')$('daylab').textContent=t('dayFor',new Date(dayDate+'T12:00:00Z').toLocaleDateString(t('locale'),{day:'numeric',month:'long',timeZone:'UTC'}));
+ boardEl.setAttribute('aria-label',t('board',s.n));
+ panel();rules();drawCells(view);
+}
+document.querySelectorAll('.lang button').forEach(b=>b.addEventListener('click',()=>switchLang(b.dataset.l)));
+applyLang();
 document.querySelectorAll('#bonuslegend .k').forEach(k=>{const c=['J','X','r','y','g','b'].find(x=>k.classList.contains(x));if(c)k.innerHTML=kInner(c,0)});
 window.BFUI={get s(){return s},doMove,setMode,startLevel,undo};
 setMode(mode);

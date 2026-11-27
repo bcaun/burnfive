@@ -13,5 +13,5 @@ id = "848a48ab87e542ddb7d41f0319b712ea"
 # Скрипты игры отдаются браузеру как текст
 [[rules]]
 type = "Text"
-globs = ["**/engine.js", "**/levels.js", "**/app.js"]
+globs = ["**/engine.js", "**/levels.js", "**/app.js", "**/i18n.js"]
 fallthrough = true

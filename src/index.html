@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -45,6 +45,8 @@ body{margin:0;min-height:100vh;color:var(--ink);font:17px/1.45 -apple-system,Bli
 .far .f1{fill:var(--far2)}.far .f2{fill:var(--far)}
 .wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(28px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
 header{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin:22px 0 12px;max-width:600px}
+.titlerow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.seg.lang{flex:none;min-height:32px;margin-right:72px}.seg.lang button{flex:none;min-width:40px;padding:0 8px;font-size:13px}
 h1{font:900 34px/1.1 var(--rounded);letter-spacing:-.01em;margin:0}
 .seg{display:flex;padding:2px;border-radius:12px;background:var(--seg);min-height:44px;gap:2px}
 .seg button{flex:1;appearance:none;border:0;background:transparent;border-radius:10px;font:600 15px/1 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;color:var(--ink);min-width:64px;padding:0 12px;font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer;transition:background .2s,box-shadow .2s}
@@ -202,24 +204,24 @@ td{padding:7px 0;border-bottom:1px solid var(--sep)}tr:last-child td{border-bott
 <svg class="far" viewBox="0 0 390 300" preserveAspectRatio="none" aria-hidden="true"><path class="f1" d="M0 150h60v-24h70v-30h80v30h60v-18h60v26h60V300H0Z"/><path class="f2" d="M0 210h40v-20h90v-26h70v26h80v-14h110V300H0Z"/></svg>
 <div class="wrap">
 <header>
- <h1>Burn Five</h1>
- <div class="seg mode" role="group" aria-label="Режим"><button data-m="e">Игра</button><button data-m="l">Уровни</button><button data-m="d">День</button></div>
+ <div class="titlerow"><h1>Burn Five</h1><div class="seg lang" role="group" data-ta="lang"><button data-l="en">EN</button><button data-l="ru">RU</button></div></div>
+ <div class="seg mode" role="group" data-ta="mode"><button data-m="e" data-t="mGame"></button><button data-m="l" data-t="mLevels"></button><button data-m="d" data-t="mDay"></button></div>
 </header>
 <div class="tools">
- <div class="seg size" role="group" aria-label="Размер поля" data-show="e"><button data-n="8">8×8</button><button data-n="10">10×10</button></div>
- <button class="act" id="new" data-show="e">Новая игра</button>
- <button class="act ghost" id="tolevels" data-show="l">Все уровни</button>
- <button class="act" id="relevel" data-show="l">Заново</button>
+ <div class="seg size" role="group" data-ta="boardSize" data-show="e"><button data-n="8">8×8</button><button data-n="10">10×10</button></div>
+ <button class="act" id="new" data-show="e" data-t="newGame"></button>
+ <button class="act ghost" id="tolevels" data-show="l" data-t="allLevels"></button>
+ <button class="act" id="relevel" data-show="l" data-t="restart"></button>
  <span class="lab" id="daylab" data-show="d"></span>
- <button class="act" id="reday" data-show="d">Заново</button>
-  <button class="act ghost icon" id="undo" disabled aria-label="Отменить ход" title="Отменить ход (один раз за партию)"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 4 9l5 5"/><path d="M4.5 9H14a6 6 0 0 1 0 12h-3"/></svg></button>
+ <button class="act" id="reday" data-show="d" data-t="restart"></button>
+  <button class="act ghost icon" id="undo" disabled data-ta="undo" data-tt="undoTitle"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 4 9l5 5"/><path d="M4.5 9H14a6 6 0 0 1 0 12h-3"/></svg></button>
 </div>
 <div class="game">
- <div class="hud" id="hud"><div><span class="lab" id="hlab">Очки</span><span class="num" id="hscore">0</span></div><div class="next" id="hnext"></div><div class="hb" id="hbonus"></div></div>
+ <div class="hud" id="hud"><div><span class="lab" id="hlab"></span><span class="num" id="hscore">0</span></div><div class="next" id="hnext"></div><div class="hb" id="hbonus"></div></div>
  <div class="boardbox">
-  <div id="board" role="grid" aria-label="Игровое поле"></div>
+  <div id="board" role="grid"></div>
   <div class="lvpick" id="lvpick" hidden></div>
-  <div class="over" id="over"><div><div class="mark" id="overmark" hidden></div><h2 id="overh">Поле заполнено</h2><p id="overtxt"></p><div class="btns"><button class="act ghost" id="over2" hidden></button><button class="act" id="over1">Сыграть еще</button></div></div></div>
+  <div class="over" id="over"><div><div class="mark" id="overmark" hidden></div><h2 id="overh"></h2><p id="overtxt"></p><div class="btns"><button class="act ghost" id="over2" hidden></button><button class="act" id="over1"></button></div></div></div>
  </div>
  <aside id="side">
   <div class="score" data-show="l" id="goalcard">
@@ -229,39 +231,39 @@ td{padding:7px 0;border-bottom:1px solid var(--sep)}tr:last-child td{border-bott
    <div class="row lab" style="margin-top:8px"><span id="goalnum"></span><span id="movesleft"></span></div>
   </div>
   <div class="score dup" data-show="e d">
-   <div class="lab">Очки</div>
+   <div class="lab" data-t="score"></div>
    <div class="big" id="score">0</div>
-   <div class="row lab"><span id="bestlab">Рекорд</span><span id="best">0</span></div>
+   <div class="row lab"><span id="bestlab"></span><span id="best">0</span></div>
   </div>
   <div class="score dup">
-   <div class="lab">Следующие цвета</div>
+   <div class="lab" data-t="next"></div>
    <div class="next" id="next"></div>
   </div>
   <div class="tempo">
-   <div class="row"><span>Ход <b id="turn">0</b></span><span id="fill"></span></div>
+   <div class="row"><span><span data-t="turn"></span> <b id="turn">0</b></span><span id="fill"></span></div>
    <div class="lab" id="phase"></div>
-   <div class="row lab" style="margin-top:8px"><span>После этого хода</span><span id="incoming"></span></div>
-   <div class="row lab"><span>Линий сожжено</span><span id="lines">0</span></div>
+   <div class="row lab" style="margin-top:8px"><span data-t="afterMove"></span><span id="incoming"></span></div>
+   <div class="row lab"><span data-t="linesBurned"></span><span id="lines">0</span></div>
    <div class="bonus" id="bonusrow"><span id="bicon"></span><span class="lab" id="btxt"></span></div>
   </div>
   <div class="score hint" data-show="l" id="hintcard"></div>
   <div class="score wide" data-show="d">
-   <div class="lab">Лучшие сегодня</div>
-   <ol class="lb" id="lb"><li><span>Пока никого</span><span></span></li></ol>
-   <label class="nick"><input id="nick" maxlength="16" placeholder="Ваше имя в таблице" autocomplete="nickname"></label>
+   <div class="lab" data-t="topToday"></div>
+   <ol class="lb" id="lb"></ol>
+   <label class="nick"><input id="nick" maxlength="16" data-tp="nickPh" autocomplete="nickname"></label>
   </div>
   <div class="rules">
-   <b>Правила</b>
+   <b data-t="rules"></b>
    <ul id="rules"></ul>
    <div id="terrainlegend"></div>
    <ul class="legend" id="bonuslegend">
-    <li><span class="ico xs"><span class="k J"></span></span><span><b>Джокер.</b> Подходит к любому цвету и сгорает вместе с линией.</span></li>
-    <li><span class="trip"><span class="ico"><span class="k g"></span></span><span class="ico"><span class="k g"></span></span><span class="ico"><span class="k g"></span></span></span><span><b>Тройка.</b> На поле падают сразу три кубика одного цвета в ряд.</span></li>
-    <li><span class="ico xs"><span class="k X"></span></span><span><b>Уничтожитель.</b> Подвиньте его вплотную к кубикам или камням: он сожжет все 8 клеток вокруг и исчезнет сам. Очков не дает, но и новый кубик в этот ход не появится.</span></li>
+    <li><span class="ico xs"><span class="k J"></span></span><span data-th="legendJ"></span></li>
+    <li><span class="trip"><span class="ico"><span class="k g"></span></span><span class="ico"><span class="k g"></span></span><span class="ico"><span class="k g"></span></span></span><span data-th="legendT"></span></li>
+    <li><span class="ico xs"><span class="k X"></span></span><span data-th="legendX"></span></li>
    </ul>
   </div>
   <div class="pts">
-   <b>Очки за линию</b>
+   <b data-t="ptsTitle"></b>
    <table><tbody id="pts"></tbody></table>
   </div>
  </aside>
@@ -269,6 +271,7 @@ td{padding:7px 0;border-bottom:1px solid var(--sep)}tr:last-child td{border-bott
 </div>
 <script src="engine.js"></script>
 <script src="levels.js"></script>
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

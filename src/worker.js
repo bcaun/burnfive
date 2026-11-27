@@ -5,7 +5,8 @@ import HTML from './index.html';
 import ENGINE from './engine.js';
 import LEVELS from './levels.js';
 import APP from './app.js';
-const JS = {'/engine.js':ENGINE, '/levels.js':LEVELS, '/app.js':APP};
+import I18N from './i18n.js';
+const JS = {'/engine.js':ENGINE, '/levels.js':LEVELS, '/app.js':APP, '/i18n.js':I18N};
 
 const NUM = ['tu','sc','ln','dbl','sp','J','Jb','T','X','Xb','Xk','fill','dur','w','best','push','cr','stone','lv','won'];
 const MODE = {e:'игра', l:'уровень', d:'день'};
@@ -124,7 +125,7 @@ async function daily(req, env, url){
   const text = await req.text(); if (text.length > 1000) return new Response('too big', {status:413});
   let d; try { d = JSON.parse(text); } catch { return new Response('bad json', {status:400}); }
   if (!dayOk(d.date || '') || !/^[a-z0-9]{8,20}$/.test(d.gid || '') || !/^[a-z0-9]{8,20}$/.test(d.sid || '')) return new Response('bad', {status:400});
-  const nick = String(d.nick || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 16) || 'Игрок';
+  const nick = String(d.nick || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 16) || 'Player';
   await env.GAMES.put('d:' + d.date + ':' + d.gid, '', {metadata:{nick, sid:d.sid, sc:clamp(d.sc, 10000000), tu:clamp(d.tu, 100000), u:Date.now()}});
   return json(await dayTop(env, d.date, d.sid));
 }
