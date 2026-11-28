@@ -21,7 +21,7 @@
 
 **Name** (до 30 знаков): Line Blast
 
-**Subtitle** (до 30): A calm color-line puzzle
+**Subtitle** (до 30): A calm puzzle of four signs
 
 **Promotional Text** (до 170): Slide cubes one cell at a time, push whole rows and burn lines of four. Twelve levels, a daily challenge and an endless game, all offline.
 
@@ -52,7 +52,7 @@ MADE TO BE EASY ON YOU
 
 **Name**: Line Blast
 
-**Subtitle** (до 30): Головоломка: собери линию
+**Subtitle** (до 30): Спокойная игра четырех знаков
 
 **Promotional Text**: Двигайте кубики по одной клетке, толкайте целые ряды и сжигайте линии из четырех. Двенадцать уровней, задача дня и бесконечная игра, все без интернета.
 
@@ -81,7 +81,7 @@ Line Blast: спокойная головоломка про цвет и про�
 
 ## Скриншоты
 
-Папки `screenshots/en` и `screenshots/ru`: по 5 картинок 1320×2868, это размер iPhone 6.9". Apple сама уменьшит их для остальных iPhone. Загружать в том же порядке, как пронумерованы файлы.
+Папки `screenshots/en` и `screenshots/ru`: по 5 картинок 1320×2868 для iPhone 6,9". В папках `screenshots/en-6.3` и `screenshots/ru-6.3` те же кадры 1206×2622 для iPhone 6,3". Загружать в том же порядке, как пронумерованы файлы.
 
 ## App Privacy (раздел «Конфиденциальность приложения»)
 
