@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 import WebKit
 
-/// Игра живет в папке www внутри приложения и открывается со схемы burnfive://localhost,
+/// Игра живет в папке www внутри приложения и открывается со схемы lineblast://localhost,
 /// поэтому работает без интернета, а localStorage (рекорды, прогресс) сохраняется между запусками.
 struct GameView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -73,9 +73,9 @@ struct GameView: UIViewRepresentable {
     }
 }
 
-/// Отдает файлы из папки www внутри приложения по адресам burnfive://localhost/<файл>
+/// Отдает файлы из папки www внутри приложения по адресам lineblast://localhost/<файл>
 final class BundleSchemeHandler: NSObject, WKURLSchemeHandler {
-    static let scheme = "burnfive"
+    static let scheme = "lineblast"
 
     func webView(_ webView: WKWebView, start task: WKURLSchemeTask) {
         guard let url = task.request.url else { return }

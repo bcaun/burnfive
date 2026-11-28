@@ -3,6 +3,11 @@ main = "src/worker.js"
 compatibility_date = "2025-11-01"
 
 [[routes]]
+pattern = "lineblast.daagamma.com"
+custom_domain = true
+
+# старый адрес оставлен, чтобы не терялись игроки и ссылки
+[[routes]]
 pattern = "burnfive.daagamma.com"
 custom_domain = true
 

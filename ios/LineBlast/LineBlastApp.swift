@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct BurnFiveApp: App {
+struct LineBlastApp: App {
     var body: some Scene {
         WindowGroup {
             GameView()

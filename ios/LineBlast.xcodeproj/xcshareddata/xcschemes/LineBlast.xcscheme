@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "B5F0000000000000000000E1"
-               BuildableName = "BurnFive.app"
-               BlueprintName = "BurnFive"
-               ReferencedContainer = "container:BurnFive.xcodeproj">
+               BuildableName = "LineBlast.app"
+               BlueprintName = "LineBlast"
+               ReferencedContainer = "container:LineBlast.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -43,9 +43,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "B5F0000000000000000000E1"
-            BuildableName = "BurnFive.app"
-            BlueprintName = "BurnFive"
-            ReferencedContainer = "container:BurnFive.xcodeproj">
+            BuildableName = "LineBlast.app"
+            BlueprintName = "LineBlast"
+            ReferencedContainer = "container:LineBlast.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -60,9 +60,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "B5F0000000000000000000E1"
-            BuildableName = "BurnFive.app"
-            BlueprintName = "BurnFive"
-            ReferencedContainer = "container:BurnFive.xcodeproj">
+            BuildableName = "LineBlast.app"
+            BlueprintName = "LineBlast"
+            ReferencedContainer = "container:LineBlast.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

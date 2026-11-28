@@ -1,4 +1,4 @@
-// Burn Five: игра, прием итогов партий и закрытая страница статистики.
+// Line Blast: игра, прием итогов партий и закрытая страница статистики.
 // Привязки: KV namespace GAMES (wrangler.toml), секрет ADMIN_KEY (задается в Cloudflare).
 
 import HTML from './index.html';
@@ -79,14 +79,14 @@ function statsPage(all, key, sel){
     ['Трещины', sum('cr'), sum('stone'), 'окаменело']
   ];
   const rows = g.slice(0, 500).map(x => `<tr><td>${fmtDate(x.u)}</td><td>${MODE[x.m||'e']}${x.lv?' '+x.lv:''}</td><td>${(x.n||10)}×${(x.n||10)}</td><td>${esc(x.sid.slice(-4))}</td><td>${x.tu}</td><td>${x.sc}</td><td>${x.ln}</td><td>${x.dbl}</td><td>${x.Jb}/${x.J}</td><td>${x.Xb}/${x.X}</td><td>${x.T}</td><td>${fmtDur(x.dur)}</td><td>${x.dev==='t'?'телефон':'компьютер'}</td><td>${x.m==='l'&&x.r==='over'?(x.won?'победа':'поражение'):REASON[x.r]||x.r}</td></tr>`).join('');
-  return `<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Burn Five: статистика</title>
+  return `<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Line Blast: статистика</title>
 <style>body{margin:0;font:15px/1.5 system-ui,sans-serif;color:#111;background:#fff}.w{max-width:1100px;margin:0 auto;padding:28px 16px}
 h1{font-size:28px;margin:0 0 4px}h2{font-size:18px;margin:32px 0 8px;border-top:2px solid #111;padding-top:10px}.m{color:#6b6b6b;font-size:13px}
 .k{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px 24px;margin-top:20px}.k b{display:block;font-size:30px;line-height:1.1}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}td,th{padding:5px 8px 5px 0;border-bottom:1px solid #e6e6e6;text-align:left;white-space:nowrap}th{font-weight:600;font-size:13px;color:#6b6b6b}
 .s{overflow-x:auto}.bar{display:grid;grid-template-columns:110px 1fr 40px;gap:8px;align-items:center;margin:4px 0}.bar i{display:block;height:14px;background:#111}
 a{color:#111}</style></head><body><div class="w">
-<h1>Burn Five: статистика</h1><div class="m">Обновлено ${fmtDate(Date.now())}. <a href="/stats.csv?key=${encodeURIComponent(key)}">Скачать CSV</a></div>
+<h1>Line Blast: статистика</h1><div class="m">Обновлено ${fmtDate(Date.now())}. <a href="/stats.csv?key=${encodeURIComponent(key)}">Скачать CSV</a></div>
 <div class="m" style="margin-top:8px">Показать: ${[['8','игра 8×8'],['10','игра 10×10'],['l','уровни'],['d','задача дня'],['all','все']].map(([v,t]) => v === sel ? `<b>${t}</b>` : `<a href="/stats?key=${encodeURIComponent(key)}&n=${v}">${t}</a>`).join(' · ')}</div>
 <div class="k">${kpi.map(([a,b]) => `<div><span class="m">${a}</span><b>${b}</b></div>`).join('')}</div>
 ${extra}
@@ -112,10 +112,10 @@ function cors(resp){
 // Грубые слова в именах для таблицы дня заменяем на «Player»
 const BAD = /(fuck|shit|cunt|bitch|nigg|fag|whore|dick|pussy|хуй|хуе|хуя|пизд|ебан|ебат|ёб|бля|сука|мудак|пидор|пидар|гандон|шлюх|залуп)/i;
 
-const PRIVACY = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Burn Five: Privacy</title>
+const PRIVACY = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Line Blast: Privacy</title>
 <style>body{margin:0;font:17px/1.55 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;color:#3b2a3f;background:#fff}.w{max-width:680px;margin:0 auto;padding:40px 20px}h1{font-size:30px;margin:0 0 6px}h2{font-size:20px;margin:36px 0 8px}p,li{margin:6px 0}.m{color:#6b5a6e;font-size:14px}</style></head><body><div class="w">
-<h1>Burn Five: Privacy Policy</h1><p class="m">Last updated: 27 November 2026</p>
-<p>Burn Five does not have accounts, does not show ads and does not track you across apps or websites.</p>
+<h1>Line Blast: Privacy Policy</h1><p class="m">Last updated: 27 November 2026</p>
+<p>Line Blast does not have accounts, does not show ads and does not track you across apps or websites.</p>
 <h2>What the game sends</h2>
 <ul><li><b>Game results</b>, to balance difficulty: number of moves, score, lines burned, bonuses used, game mode and level, board size, game length in seconds, whether the device is a phone, screen width, and whether the game ran in the app or in a browser. Each game is tagged with a random number created when the game opens. It is not stored between launches and cannot identify you.</li>
 <li><b>Daily challenge</b>: when a daily game ends, your score, number of moves and the name you typed (or “Player” and three random characters) are sent to the leaderboard and shown to other players.</li></ul>
@@ -180,7 +180,7 @@ export default {
       const key = url.searchParams.get('key') || '';
       if (!env.ADMIN_KEY || key !== env.ADMIN_KEY) return new Response('Not found', {status:404});
       const g = await allGames(env);
-      if (url.pathname === '/stats.csv') return new Response(csv(g), {headers:{'content-type':'text/csv; charset=utf-8','content-disposition':'attachment; filename="burnfive.csv"'}});
+      if (url.pathname === '/stats.csv') return new Response(csv(g), {headers:{'content-type':'text/csv; charset=utf-8','content-disposition':'attachment; filename="lineblast.csv"'}});
       const sel = ['8','10','l','d','all'].includes(url.searchParams.get('n')) ? url.searchParams.get('n') : '8';
       return new Response(statsPage(g, key, sel), {headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-robots-tag':'noindex'}});
     }

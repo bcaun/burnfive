@@ -1,4 +1,4 @@
-# Burn Five: данные для App Store Connect
+# Line Blast: данные для App Store Connect
 
 Все поля ниже вставляются в App Store Connect как есть. Основной язык страницы: English (U.S.), дополнительный: Russian.
 
@@ -6,20 +6,20 @@
 
 | Поле | Значение |
 |---|---|
-| Bundle ID | `com.daagamma.burnfive` (задан в проекте Xcode, можно поменять до первой отправки) |
-| SKU | `burnfive` |
+| Bundle ID | `com.daagamma.lineblast` (задан в проекте Xcode, можно поменять до первой отправки) |
+| SKU | `lineblast` |
 | Категория | Games, подкатегории Puzzle и Board |
 | Цена | Free |
 | Устройства | только iPhone |
-| Privacy Policy URL | https://burnfive.daagamma.com/privacy |
-| Support URL | https://burnfive.daagamma.com |
+| Privacy Policy URL | https://lineblast.daagamma.com/privacy |
+| Support URL | https://lineblast.daagamma.com |
 | Copyright | 2026 и название компании-издателя |
 | Возрастной рейтинг | 4+ (во всех вопросах анкеты ответ None / No, кроме пользовательского контента, см. ниже) |
 | Шифрование | в Info.plist уже указано, что приложение не использует собственное шифрование, вопрос в Connect не появится |
 
 ## English (U.S.)
 
-**Name** (до 30 знаков): Burn Five
+**Name** (до 30 знаков): Line Blast
 
 **Subtitle** (до 30): A calm color-line puzzle
 
@@ -29,7 +29,7 @@
 
 **Description**:
 
-Burn Five is a calm puzzle about color and space.
+Line Blast is a calm puzzle about color and space.
 
 Slide any cube one cell at a time. Line up four cubes of the same color and they burn. Every move that burns nothing lets new cubes drop onto the board, so each step counts.
 
@@ -50,7 +50,7 @@ MADE TO BE EASY ON YOU
 
 ## Русский
 
-**Name**: Burn Five
+**Name**: Line Blast
 
 **Subtitle** (до 30): Головоломка: собери линию
 
@@ -60,7 +60,7 @@ MADE TO BE EASY ON YOU
 
 **Description**:
 
-Burn Five: спокойная головоломка про цвет и пространство.
+Line Blast: спокойная головоломка про цвет и пространство.
 
 Двигайте любой кубик на одну клетку. Четыре кубика одного цвета в ряд сгорают. Если на ходу ничего не сгорело, на поле падают новые кубики, поэтому важен каждый шаг.
 
@@ -100,4 +100,4 @@ Burn Five: спокойная головоломка про цвет и прос
 
 ## Notes for Review (поле для проверяющего, на английском)
 
-Burn Five is a single-player puzzle game. It works fully offline: all game files are bundled in the app. The only network calls are anonymous game statistics and the optional daily leaderboard at burnfive.daagamma.com. Leaderboard names are short nicknames typed by players; offensive words are replaced on the server. No login is required to review any part of the app.
+Line Blast is a single-player puzzle game. It works fully offline: all game files are bundled in the app. The only network calls are anonymous game statistics and the optional daily leaderboard at lineblast.daagamma.com. Leaderboard names are short nicknames typed by players; offensive words are replaced on the server. No login is required to review any part of the app.

@@ -5,8 +5,8 @@ const cname=c=>t('color')[c],bname=b=>t('bonus')[b];
 const tname=x=>x?(t('terrain')[x[0]]||t('terrain').O):t('empty');
 const LEVELS=window.BF_LEVELS;
 const boardEl=$('board');
-// В приложении для iOS страница открывается со схемы burnfive://, сервер тогда указываем полностью
-const NATIVE=location.protocol==='burnfive:',API=NATIVE?'https://burnfive.daagamma.com':'';
+// В приложении для iOS страница открывается со схемы lineblast://, сервер тогда указываем полностью
+const NATIVE=location.protocol==='lineblast:',API=NATIVE?'https://lineblast.daagamma.com':'';
 const hap=k=>{try{window.webkit.messageHandlers.bf.postMessage({h:k})}catch(e){}};
 const SID=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const TOUCH=matchMedia('(pointer: coarse)').matches;

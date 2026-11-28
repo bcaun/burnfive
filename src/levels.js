@@ -1,4 +1,4 @@
-/* Burn Five: уровни (name/hint по-русски, name_en/hint_en по-английски). terrain: . пусто, P колонна, I лед, R Y G V краска, 1 2 пары порталов.
+/* Line Blast: уровни (name/hint по-русски, name_en/hint_en по-английски). terrain: . пусто, P колонна, I лед, R Y G V краска, 1 2 пары порталов.
    pieces: r y g b кубики, S камень, X уничтожитель, J джокер, ! треснутый кубик. */
 (function(root){
 const E='........';

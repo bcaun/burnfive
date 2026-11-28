@@ -1,9 +1,9 @@
-# Burn Five
+# Line Blast
 
 Головоломка: двигайте кубики на одну клетку (или толкайте ряд), собирайте линии одного цвета.
 
-- Игра: https://burnfive.daagamma.com
-- Статистика: https://burnfive.daagamma.com/stats?key=ADMIN_KEY
+- Игра: https://lineblast.daagamma.com
+- Статистика: https://lineblast.daagamma.com/stats?key=ADMIN_KEY
 
 ## Режимы
 - **Игра**: бесконечная партия, поле 8×8 (линии от 4) или 10×10 (линии от 5), толчки и трещины.
